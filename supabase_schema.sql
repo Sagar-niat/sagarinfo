@@ -133,7 +133,8 @@ CREATE TABLE IF NOT EXISTS public.achievements (
 CREATE TABLE IF NOT EXISTS public.education (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
-  level TEXT NOT NULL CHECK (level IN ('School', 'Intermediate', 'B.Tech', 'Other')),
+  degree TEXT NOT NULL,
+  level TEXT CHECK (level IN ('School', 'Intermediate', 'B.Tech', 'Other')),
   institution TEXT NOT NULL,
   board_or_university TEXT,
   start_year TEXT,
@@ -147,7 +148,41 @@ CREATE TABLE IF NOT EXISTS public.education (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 8. Skills Table
+-- 8. Applied Hackathons Table
+CREATE TABLE IF NOT EXISTS public.applied_hackathons (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
+  name TEXT NOT NULL,
+  organizer TEXT NOT NULL,
+  application_date DATE,
+  project_submitted TEXT,
+  status TEXT DEFAULT 'Under Review',
+  prize_pool TEXT,
+  submission_url TEXT,
+  proof_url TEXT,
+  notes TEXT,
+  is_favorite BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 9. Applied Scholarships Table
+CREATE TABLE IF NOT EXISTS public.applied_scholarships (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
+  name TEXT NOT NULL,
+  provider TEXT NOT NULL,
+  application_date DATE,
+  amount TEXT,
+  status TEXT DEFAULT 'Under Review',
+  eligibility TEXT,
+  submitted_document TEXT,
+  proof_url TEXT,
+  notes TEXT,
+  is_favorite BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 10. Skills Table
 CREATE TABLE IF NOT EXISTS public.skills (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
