@@ -109,6 +109,7 @@ interface DataContextType {
   toast: ToastMessage | null;
   showToast: (text: string, type?: 'success' | 'error' | 'info') => void;
   resetAllData: () => void;
+  startFreshCleanVault: () => void;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -503,6 +504,24 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     showToast('Reset all data to SAGARINFO initial state', 'info');
   };
 
+  const startFreshCleanVault = () => {
+    storageService.clearToEmptyVault();
+    setProfile(storageService.getProfile());
+    setDocuments([]);
+    setCertificates([]);
+    setProjects([]);
+    setPresentations([]);
+    setAchievements([]);
+    setEducation([]);
+    setSkills([]);
+    setResumes([]);
+    setLinks([]);
+    setAppliedHackathons([]);
+    setAppliedScholarships([]);
+    setActivities(storageService.getActivities());
+    showToast('Vault cleared to a 100% fresh clean state. Add your own real documents!', 'success');
+  };
+
   return (
     <DataContext.Provider
       value={{
@@ -578,6 +597,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         toast,
         showToast,
         resetAllData,
+        startFreshCleanVault,
       }}
     >
       {children}

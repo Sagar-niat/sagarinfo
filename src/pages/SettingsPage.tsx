@@ -24,7 +24,7 @@ import { storageService } from '../services/storageService';
 import { ConfirmationModal } from '../components/common/ConfirmationModal';
 
 export const SettingsPage: React.FC = () => {
-  const { storageStats, resetAllData, showToast } = useData();
+  const { storageStats, resetAllData, startFreshCleanVault, showToast } = useData();
   const { registerWebAuthnPasskey, hasPasskeyRegistered } = useAuth();
   const { themeMode, setThemeMode } = useTheme();
 
@@ -33,6 +33,7 @@ export const SettingsPage: React.FC = () => {
 
   // Modal confirmation states
   const [isResetConfirmOpen, setIsResetConfirmOpen] = useState(false);
+  const [isCleanVaultConfirmOpen, setIsCleanVaultConfirmOpen] = useState(false);
   const [isLogoutSessionsConfirmOpen, setIsLogoutSessionsConfirmOpen] = useState(false);
 
   // Detect Real Device Environment dynamically
@@ -250,8 +251,14 @@ export const SettingsPage: React.FC = () => {
 
       {/* Storage Tab */}
       {activeTab === 'storage' && (
-        <div className="glass-panel p-6 rounded-3xl border border-slate-200 dark:border-slate-800 space-y-4">
-          <h3 className="text-base font-extrabold text-slate-900 dark:text-white">Vault Storage & Reset</h3>
+        <div className="glass-panel p-6 rounded-3xl border border-slate-200 dark:border-slate-800 space-y-6">
+          <div>
+            <h3 className="text-base font-extrabold text-slate-900 dark:text-white">Vault Storage & Clean Start</h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              Clear demo records to start with a 100% fresh clean vault for your own real documents.
+            </p>
+          </div>
+
           <div className="space-y-2 text-xs">
             <div className="flex justify-between font-bold">
               <span>Total Vault Usage:</span>
@@ -262,12 +269,19 @@ export const SettingsPage: React.FC = () => {
             </div>
           </div>
 
-          <div className="pt-4 border-t border-slate-200 dark:border-slate-800">
+          <div className="pt-4 border-t border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-center gap-3">
+            <button
+              onClick={() => setIsCleanVaultConfirmOpen(true)}
+              className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-md touch-target"
+            >
+              <Trash2 className="w-4 h-4" /> Start Fresh Clean Vault (0 Items)
+            </button>
+
             <button
               onClick={() => setIsResetConfirmOpen(true)}
-              className="px-4 py-2.5 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 text-rose-600 dark:text-rose-400 text-xs font-bold flex items-center gap-2"
+              className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold flex items-center justify-center gap-2 touch-target"
             >
-              <RefreshCw className="w-4 h-4" /> Reset Data to Default Setup
+              <RefreshCw className="w-4 h-4" /> Restore Demo Setup
             </button>
           </div>
         </div>
@@ -290,10 +304,22 @@ export const SettingsPage: React.FC = () => {
 
       {/* Confirmation Modals */}
       <ConfirmationModal
+        isOpen={isCleanVaultConfirmOpen}
+        title="Start 100% Fresh Clean Vault?"
+        message="This will clear all demo documents, certificates, and projects so you can populate your vault entirely with your own real records."
+        confirmText="Clear & Start Fresh"
+        onConfirm={() => {
+          startFreshCleanVault();
+          setIsCleanVaultConfirmOpen(false);
+        }}
+        onCancel={() => setIsCleanVaultConfirmOpen(false)}
+      />
+
+      <ConfirmationModal
         isOpen={isResetConfirmOpen}
-        title="Reset all vault data?"
-        message="This will clear custom entries and restore default initial setup."
-        confirmText="Reset Vault Data"
+        title="Reset all vault data to demo?"
+        message="This will restore the original demo records."
+        confirmText="Restore Demo Setup"
         onConfirm={() => {
           resetAllData();
           setIsResetConfirmOpen(false);

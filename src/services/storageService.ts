@@ -187,4 +187,23 @@ export const storageService = {
     setStorageItem(KEYS.SCHOLARSHIPS, initialAppliedScholarships);
     setStorageItem(KEYS.ACTIVITIES, initialActivities);
   },
+
+  clearToEmptyVault: (): void => {
+    localStorage.clear();
+    setStorageItem(KEYS.PROFILE, initialProfile);
+    setStorageItem(KEYS.DOCUMENTS, []);
+    setStorageItem(KEYS.CERTIFICATES, []);
+    setStorageItem(KEYS.PROJECTS, []);
+    setStorageItem(KEYS.PRESENTATIONS, []);
+    setStorageItem(KEYS.ACHIEVEMENTS, []);
+    setStorageItem(KEYS.EDUCATION, []);
+    setStorageItem(KEYS.SKILLS, []);
+    setStorageItem(KEYS.RESUMES, []);
+    setStorageItem(KEYS.LINKS, []);
+    setStorageItem(KEYS.HACKATHONS, []);
+    setStorageItem(KEYS.SCHOLARSHIPS, []);
+    setStorageItem(KEYS.ACTIVITIES, [
+      { id: 'act-01', action: 'Initialized Clean Vault OS', targetName: 'Sagar Digital Vault', targetType: 'Document', timestamp: 'Just now' }
+    ]);
+  },
 };
