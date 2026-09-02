@@ -1,0 +1,151 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    /* Light Mode Palette */
+    --bg-primary: #f8fafc;
+    --bg-surface: #ffffff;
+    --bg-surface-hover: #f1f5f9;
+    --bg-elevated: #e2e8f0;
+    --border-color: #cbd5e1;
+    --border-subtle: #e2e8f0;
+
+    --text-primary: #0f172a;
+    --text-secondary: #334155;
+    --text-muted: #64748b;
+    --text-inverse: #f8fafc;
+
+    --brand-primary: #0891b2;
+    --brand-primary-hover: #0e7490;
+    --brand-primary-light: rgba(8, 145, 178, 0.1);
+    --brand-secondary: #4f46e5;
+
+    --status-success: #10b981;
+    --status-warning: #f59e0b;
+    --status-error: #ef4444;
+    --status-info: #3b82f6;
+
+    --card-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.06);
+    --modal-backdrop: rgba(15, 23, 42, 0.6);
+  }
+
+  .dark {
+    /* Dark Mode Palette */
+    --bg-primary: #050b16;
+    --bg-surface: #0a1324;
+    --bg-surface-hover: #101e38;
+    --bg-elevated: #162644;
+    --border-color: rgba(30, 41, 59, 0.8);
+    --border-subtle: rgba(6, 182, 212, 0.15);
+
+    --text-primary: #f8fafc;
+    --text-secondary: #cbd5e1;
+    --text-muted: #64748b;
+    --text-inverse: #0f172a;
+
+    --brand-primary: #06b6d4;
+    --brand-primary-hover: #22d3ee;
+    --brand-primary-light: rgba(6, 182, 212, 0.15);
+    --brand-secondary: #6366f1;
+
+    --status-success: #34d399;
+    --status-warning: #fbbf24;
+    --status-error: #f87171;
+    --status-info: #60a5fa;
+
+    --card-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.5);
+    --modal-backdrop: rgba(3, 7, 18, 0.85);
+  }
+
+  body {
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    transition: background-color 0.2s ease, color 0.2s ease;
+    overflow-x: hidden;
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+/* Custom Design Tokens & Utility Classes */
+.glass-panel {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--card-shadow);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.glow-card {
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glow-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--brand-primary);
+  box-shadow: 0 12px 30px -5px rgba(6, 182, 212, 0.15);
+}
+
+/* Standardized Typography Hierarchy */
+.heading-hero {
+  font-size: clamp(1.875rem, 4vw, 3.25rem);
+  font-weight: 900;
+  line-height: 1.1;
+  letter-spacing: -0.025em;
+}
+
+.heading-page {
+  font-size: clamp(1.25rem, 2.5vw, 1.75rem);
+  font-weight: 800;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+}
+
+.heading-section {
+  font-size: 1.125rem;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.heading-card {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.text-body {
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.text-meta {
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: var(--text-muted);
+}
+
+/* Custom Touch Target Buttons for Mobile */
+.touch-target {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+/* File Upload Prominent Zone Animation */
+@keyframes dash-march {
+  to { stroke-dashoffset: -20; }
+}
+
+.border-dashed-march {
+  background-image: repeating-linear-gradient(0deg, var(--border-color), var(--border-color) 10px, transparent 10px, transparent 20px);
+}
+
+/* Modal Animations */
+@keyframes modal-pop {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.animate-modal-pop {
+  animation: modal-pop 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
