@@ -159,7 +159,26 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
-
+  // Hydrate full state & heavy files from persistent IndexedDB on mount
+  useEffect(() => {
+    storageService.hydrateFromIndexedDB().then((data) => {
+      if (data) {
+        if (data.profile) setProfile(data.profile);
+        if (Array.isArray(data.documents)) setDocuments(data.documents);
+        if (Array.isArray(data.certificates)) setCertificates(data.certificates);
+        if (Array.isArray(data.projects)) setProjects(data.projects);
+        if (Array.isArray(data.presentations)) setPresentations(data.presentations);
+        if (Array.isArray(data.achievements)) setAchievements(data.achievements);
+        if (Array.isArray(data.education)) setEducation(data.education);
+        if (Array.isArray(data.skills)) setSkills(data.skills);
+        if (Array.isArray(data.resumes)) setResumes(data.resumes);
+        if (Array.isArray(data.links)) setLinks(data.links);
+        if (Array.isArray(data.appliedHackathons)) setAppliedHackathons(data.appliedHackathons);
+        if (Array.isArray(data.appliedScholarships)) setAppliedScholarships(data.appliedScholarships);
+        if (Array.isArray(data.activities)) setActivities(data.activities);
+      }
+    });
+  }, []);
 
   // Update Profile
   const updateProfile = (newProfile: UserProfile) => {

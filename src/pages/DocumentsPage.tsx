@@ -100,20 +100,20 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = () => {
 
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title || (!selectedFile && !editingDoc)) {
-      showToast('Please select or upload a document file', 'error');
+    if (!title.trim()) {
+      showToast('Please enter a document title', 'error');
       return;
     }
 
     const payload: Omit<DocumentItem, 'id' | 'uploadDate'> = {
-      title,
+      title: title.trim(),
       category,
-      fileName: selectedFile?.name || title,
-      fileSize: selectedFile?.size || editingDoc?.fileSize || '1.5 MB',
-      fileSizeBytes: 1500000,
+      fileName: selectedFile?.name || `${title.trim().replace(/\s+/g, '_')}.pdf`,
+      fileSize: selectedFile?.size || editingDoc?.fileSize || 'Vault Document',
+      fileSizeBytes: selectedFile?.url ? 1500000 : 50000,
       fileType: (selectedFile?.type as any) || editingDoc?.fileType || 'pdf',
-      fileUrl: selectedFile?.url || editingDoc?.fileUrl || 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
-      previewUrl: selectedFile?.url || editingDoc?.previewUrl || 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
+      fileUrl: selectedFile?.url || editingDoc?.fileUrl || '',
+      previewUrl: selectedFile?.url || editingDoc?.previewUrl || '',
       tags: tagsInput.split(',').map((t) => t.trim()).filter(Boolean),
       visibility,
       isPrivate: visibility === 'private',
@@ -413,11 +413,11 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = () => {
 
               {/* Prominent File Upload Component */}
               <FileUploadZone
-                label="Upload Document File"
+                label="Upload Document File (Optional)"
                 selectedFile={selectedFile}
                 onFileSelect={(file) => setSelectedFile(file)}
                 onFileRemove={() => setSelectedFile(null)}
-                isRequired={!editingDoc}
+                isRequired={false}
               />
 
               <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-200 dark:border-slate-800">

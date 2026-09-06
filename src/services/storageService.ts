@@ -29,8 +29,7 @@ import {
   initialAppliedHackathons,
   initialAppliedScholarships,
 } from './mockData';
-
-const VAULT_VERSION_KEY = 'sagarinfo_vault_version_v3_clean';
+import { idbGet, idbSet, idbSaveFile, idbGetFile, idbClearAll } from './vaultDB';
 
 const KEYS = {
   PROFILE: 'sagarinfo_profile',
@@ -48,103 +47,154 @@ const KEYS = {
   SCHOLARSHIPS: 'sagarinfo_scholarships',
 };
 
-// Automatic cleanup migration: ensures any legacy mock documents in user browser are purged
-const ensureCleanStorage = () => {
-  try {
-    const version = localStorage.getItem(VAULT_VERSION_KEY);
-    if (!version) {
-      // Clear legacy storage items containing mock Aadhaar/PAN cards
-      Object.values(KEYS).forEach((k) => localStorage.removeItem(k));
-      localStorage.setItem(VAULT_VERSION_KEY, 'v3_clean');
-    }
-  } catch (err) {
-    console.warn('Storage check error:', err);
-  }
-};
-
-ensureCleanStorage();
-
+// Safe localStorage getter
 const getStorageItem = <T>(key: string, defaultValue: T): T => {
   try {
     const stored = localStorage.getItem(key);
     return stored ? JSON.parse(stored) : defaultValue;
   } catch (err) {
-    console.error(`Error reading ${key} from localStorage:`, err);
+    console.warn(`Error reading ${key} from localStorage:`, err);
     return defaultValue;
   }
 };
 
+// Safe localStorage setter that avoids QuotaExceededError
 const setStorageItem = <T>(key: string, value: T): void => {
   try {
     localStorage.setItem(key, JSON.stringify(value));
-  } catch (err) {
-    console.error(`Error writing ${key} to localStorage:`, err);
+  } catch (err: any) {
+    if (err.name === 'QuotaExceededError' || err.code === 22) {
+      console.warn(`LocalStorage quota reached for ${key}. Storing metadata only; full files are secured in IndexedDB.`);
+      try {
+        // Strip large data URLs if attempting to store into localStorage
+        const sanitized = sanitizeForLocalStorage(value);
+        localStorage.setItem(key, JSON.stringify(sanitized));
+      } catch (innerErr) {
+        console.warn(`LocalStorage completely full for ${key}. Data is preserved in IndexedDB.`, innerErr);
+      }
+    } else {
+      console.warn(`Error writing ${key} to localStorage:`, err);
+    }
   }
 };
 
+// Helper: strips giant base64 payloads from localStorage object to keep it under 5MB
+const sanitizeForLocalStorage = (val: any): any => {
+  if (Array.isArray(val)) {
+    return val.map((item) => {
+      if (item && typeof item === 'object') {
+        const copy = { ...item };
+        if (typeof copy.fileUrl === 'string' && copy.fileUrl.length > 20000) {
+          copy.fileUrl = 'idb:' + (copy.id || 'file');
+        }
+        if (typeof copy.previewUrl === 'string' && copy.previewUrl.length > 20000) {
+          copy.previewUrl = 'idb:' + (copy.id || 'file');
+        }
+        if (typeof copy.certificateUrl === 'string' && copy.certificateUrl.length > 20000) {
+          copy.certificateUrl = 'idb:' + (copy.id || 'file');
+        }
+        return copy;
+      }
+      return item;
+    });
+  }
+  return val;
+};
+
 export const storageService = {
+  // Synchronous getters from localStorage (used for instant 0ms app boot)
   getProfile: (): UserProfile => getStorageItem(KEYS.PROFILE, initialProfile),
+  getDocuments: (): DocumentItem[] => getStorageItem(KEYS.DOCUMENTS, initialDocuments),
+  getCertificates: (): CertificateItem[] => getStorageItem(KEYS.CERTIFICATES, initialCertificates),
+  getProjects: (): ProjectItem[] => getStorageItem(KEYS.PROJECTS, initialProjects),
+  getPresentations: (): PresentationItem[] => getStorageItem(KEYS.PRESENTATIONS, initialPresentations),
+  getAchievements: (): AchievementItem[] => getStorageItem(KEYS.ACHIEVEMENTS, initialAchievements),
+  getEducation: (): EducationItem[] => getStorageItem(KEYS.EDUCATION, initialEducation),
+  getSkills: (): SkillItem[] => getStorageItem(KEYS.SKILLS, initialSkills),
+  getResumes: (): ResumeVersion[] => getStorageItem(KEYS.RESUMES, initialResumeVersions),
+  getLinks: (): ImportantLink[] => getStorageItem(KEYS.LINKS, initialLinks),
+  getAppliedHackathons: (): AppliedHackathon[] => getStorageItem(KEYS.HACKATHONS, initialAppliedHackathons),
+  getAppliedScholarships: (): AppliedScholarship[] => getStorageItem(KEYS.SCHOLARSHIPS, initialAppliedScholarships),
+  getActivities: (): ActivityLog[] => getStorageItem(KEYS.ACTIVITIES, initialActivities),
+
+  // Dual-layer saving (IndexedDB for unlimited capacity + localStorage for fast boot)
   saveProfile: (profile: UserProfile): UserProfile => {
     setStorageItem(KEYS.PROFILE, profile);
+    idbSet(KEYS.PROFILE, profile);
     return profile;
   },
 
-  getDocuments: (): DocumentItem[] => getStorageItem(KEYS.DOCUMENTS, initialDocuments),
   saveDocuments: (docs: DocumentItem[]): void => {
-    setStorageItem(KEYS.DOCUMENTS, docs);
+    // Persist full files in IndexedDB files store if large dataUrls exist
+    docs.forEach((d) => {
+      if (d.fileUrl && d.fileUrl.startsWith('data:') && d.fileUrl.length > 50000) {
+        idbSaveFile(d.id, d.fileUrl);
+      }
+    });
+    idbSet(KEYS.DOCUMENTS, docs);
+    setStorageItem(KEYS.DOCUMENTS, sanitizeForLocalStorage(docs));
   },
 
-  getCertificates: (): CertificateItem[] => getStorageItem(KEYS.CERTIFICATES, initialCertificates),
   saveCertificates: (certs: CertificateItem[]): void => {
-    setStorageItem(KEYS.CERTIFICATES, certs);
+    certs.forEach((c) => {
+      if (c.fileUrl && c.fileUrl.startsWith('data:') && c.fileUrl.length > 50000) {
+        idbSaveFile(c.id, c.fileUrl);
+      }
+    });
+    idbSet(KEYS.CERTIFICATES, certs);
+    setStorageItem(KEYS.CERTIFICATES, sanitizeForLocalStorage(certs));
   },
 
-  getProjects: (): ProjectItem[] => getStorageItem(KEYS.PROJECTS, initialProjects),
   saveProjects: (projects: ProjectItem[]): void => {
+    idbSet(KEYS.PROJECTS, projects);
     setStorageItem(KEYS.PROJECTS, projects);
   },
 
-  getPresentations: (): PresentationItem[] => getStorageItem(KEYS.PRESENTATIONS, initialPresentations),
   savePresentations: (pres: PresentationItem[]): void => {
+    idbSet(KEYS.PRESENTATIONS, pres);
     setStorageItem(KEYS.PRESENTATIONS, pres);
   },
 
-  getAchievements: (): AchievementItem[] => getStorageItem(KEYS.ACHIEVEMENTS, initialAchievements),
   saveAchievements: (ach: AchievementItem[]): void => {
+    idbSet(KEYS.ACHIEVEMENTS, ach);
     setStorageItem(KEYS.ACHIEVEMENTS, ach);
   },
 
-  getEducation: (): EducationItem[] => getStorageItem(KEYS.EDUCATION, initialEducation),
   saveEducation: (edu: EducationItem[]): void => {
+    idbSet(KEYS.EDUCATION, edu);
     setStorageItem(KEYS.EDUCATION, edu);
   },
 
-  getSkills: (): SkillItem[] => getStorageItem(KEYS.SKILLS, initialSkills),
   saveSkills: (skills: SkillItem[]): void => {
+    idbSet(KEYS.SKILLS, skills);
     setStorageItem(KEYS.SKILLS, skills);
   },
 
-  getResumes: (): ResumeVersion[] => getStorageItem(KEYS.RESUMES, initialResumeVersions),
   saveResumes: (resumes: ResumeVersion[]): void => {
-    setStorageItem(KEYS.RESUMES, resumes);
+    resumes.forEach((r) => {
+      if (r.fileUrl && r.fileUrl.startsWith('data:') && r.fileUrl.length > 50000) {
+        idbSaveFile(r.id, r.fileUrl);
+      }
+    });
+    idbSet(KEYS.RESUMES, resumes);
+    setStorageItem(KEYS.RESUMES, sanitizeForLocalStorage(resumes));
   },
 
-  getLinks: (): ImportantLink[] => getStorageItem(KEYS.LINKS, initialLinks),
   saveLinks: (links: ImportantLink[]): void => {
+    idbSet(KEYS.LINKS, links);
     setStorageItem(KEYS.LINKS, links);
   },
 
-  getAppliedHackathons: (): AppliedHackathon[] => getStorageItem(KEYS.HACKATHONS, initialAppliedHackathons),
   saveAppliedHackathons: (hacks: AppliedHackathon[]): void => {
+    idbSet(KEYS.HACKATHONS, hacks);
     setStorageItem(KEYS.HACKATHONS, hacks);
   },
 
-  getAppliedScholarships: (): AppliedScholarship[] => getStorageItem(KEYS.SCHOLARSHIPS, initialAppliedScholarships),
   saveAppliedScholarships: (schol: AppliedScholarship[]): void => {
+    idbSet(KEYS.SCHOLARSHIPS, schol);
     setStorageItem(KEYS.SCHOLARSHIPS, schol);
   },
 
-  getActivities: (): ActivityLog[] => getStorageItem(KEYS.ACTIVITIES, initialActivities),
   addActivity: (action: string, targetName: string, targetType: ActivityLog['targetType']): void => {
     const current = getStorageItem<ActivityLog[]>(KEYS.ACTIVITIES, initialActivities);
     const newLog: ActivityLog = {
@@ -154,8 +204,80 @@ export const storageService = {
       targetType,
       timestamp: 'Just now',
     };
-    const updated = [newLog, ...current.slice(0, 25)];
+    const updated = [newLog, ...current.slice(0, 30)];
     setStorageItem(KEYS.ACTIVITIES, updated);
+    idbSet(KEYS.ACTIVITIES, updated);
+  },
+
+  // Hydrate all vault state from IndexedDB (preserves all uploaded files & edits across refreshes)
+  hydrateFromIndexedDB: async () => {
+    try {
+      const [
+        profile,
+        documents,
+        certificates,
+        projects,
+        presentations,
+        achievements,
+        education,
+        skills,
+        resumes,
+        links,
+        appliedHackathons,
+        appliedScholarships,
+        activities,
+      ] = await Promise.all([
+        idbGet<UserProfile | null>(KEYS.PROFILE, null),
+        idbGet<DocumentItem[] | null>(KEYS.DOCUMENTS, null),
+        idbGet<CertificateItem[] | null>(KEYS.CERTIFICATES, null),
+        idbGet<ProjectItem[] | null>(KEYS.PROJECTS, null),
+        idbGet<PresentationItem[] | null>(KEYS.PRESENTATIONS, null),
+        idbGet<AchievementItem[] | null>(KEYS.ACHIEVEMENTS, null),
+        idbGet<EducationItem[] | null>(KEYS.EDUCATION, null),
+        idbGet<SkillItem[] | null>(KEYS.SKILLS, null),
+        idbGet<ResumeVersion[] | null>(KEYS.RESUMES, null),
+        idbGet<ImportantLink[] | null>(KEYS.LINKS, null),
+        idbGet<AppliedHackathon[] | null>(KEYS.HACKATHONS, null),
+        idbGet<AppliedScholarship[] | null>(KEYS.SCHOLARSHIPS, null),
+        idbGet<ActivityLog[] | null>(KEYS.ACTIVITIES, null),
+      ]);
+
+      // Rehydrate files that might be referenced as idb:id
+      let restoredDocs = documents;
+      if (Array.isArray(restoredDocs)) {
+        restoredDocs = await Promise.all(
+          restoredDocs.map(async (doc) => {
+            if (doc.fileUrl && doc.fileUrl.startsWith('idb:')) {
+              const fileId = doc.fileUrl.replace('idb:', '');
+              const realFile = await idbGetFile(fileId);
+              if (realFile) {
+                return { ...doc, fileUrl: realFile, previewUrl: realFile };
+              }
+            }
+            return doc;
+          })
+        );
+      }
+
+      return {
+        profile,
+        documents: restoredDocs,
+        certificates,
+        projects,
+        presentations,
+        achievements,
+        education,
+        skills,
+        resumes,
+        links,
+        appliedHackathons,
+        appliedScholarships,
+        activities,
+      };
+    } catch (err) {
+      console.warn('Hydration from IndexedDB error:', err);
+      return null;
+    }
   },
 
   calculateStorageStats: (
@@ -184,7 +306,6 @@ export const storageService = {
     };
   },
 
-  // Cross-device sync helper: bundle full state
   getFullState: () => ({
     profile: storageService.getProfile(),
     documents: storageService.getDocuments(),
@@ -202,14 +323,12 @@ export const storageService = {
     updatedAt: new Date().toISOString(),
   }),
 
-
-
   exportAllData: (): void => {
     const fullData = storageService.getFullState();
     const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(fullData, null, 2));
     const downloadAnchor = document.createElement('a');
     downloadAnchor.setAttribute('href', dataStr);
-    downloadAnchor.setAttribute('download', `sagar_vault_backup_${new Date().toISOString().split('T')[0]}.json`);
+    downloadAnchor.setAttribute('download', `sagar_vault_complete_backup_${new Date().toISOString().split('T')[0]}.json`);
     document.body.appendChild(downloadAnchor);
     downloadAnchor.click();
     downloadAnchor.remove();
@@ -219,19 +338,22 @@ export const storageService = {
     try {
       if (!importedData || typeof importedData !== 'object') return false;
 
-      if (importedData.profile) setStorageItem(KEYS.PROFILE, importedData.profile);
-      if (Array.isArray(importedData.documents)) setStorageItem(KEYS.DOCUMENTS, importedData.documents);
-      if (Array.isArray(importedData.certificates)) setStorageItem(KEYS.CERTIFICATES, importedData.certificates);
-      if (Array.isArray(importedData.projects)) setStorageItem(KEYS.PROJECTS, importedData.projects);
-      if (Array.isArray(importedData.presentations)) setStorageItem(KEYS.PRESENTATIONS, importedData.presentations);
-      if (Array.isArray(importedData.achievements)) setStorageItem(KEYS.ACHIEVEMENTS, importedData.achievements);
-      if (Array.isArray(importedData.education)) setStorageItem(KEYS.EDUCATION, importedData.education);
-      if (Array.isArray(importedData.skills)) setStorageItem(KEYS.SKILLS, importedData.skills);
-      if (Array.isArray(importedData.resumes)) setStorageItem(KEYS.RESUMES, importedData.resumes);
-      if (Array.isArray(importedData.links)) setStorageItem(KEYS.LINKS, importedData.links);
-      if (Array.isArray(importedData.appliedHackathons)) setStorageItem(KEYS.HACKATHONS, importedData.appliedHackathons);
-      if (Array.isArray(importedData.appliedScholarships)) setStorageItem(KEYS.SCHOLARSHIPS, importedData.appliedScholarships);
-      if (Array.isArray(importedData.activities)) setStorageItem(KEYS.ACTIVITIES, importedData.activities);
+      if (importedData.profile) storageService.saveProfile(importedData.profile);
+      if (Array.isArray(importedData.documents)) storageService.saveDocuments(importedData.documents);
+      if (Array.isArray(importedData.certificates)) storageService.saveCertificates(importedData.certificates);
+      if (Array.isArray(importedData.projects)) storageService.saveProjects(importedData.projects);
+      if (Array.isArray(importedData.presentations)) storageService.savePresentations(importedData.presentations);
+      if (Array.isArray(importedData.achievements)) storageService.saveAchievements(importedData.achievements);
+      if (Array.isArray(importedData.education)) storageService.saveEducation(importedData.education);
+      if (Array.isArray(importedData.skills)) storageService.saveSkills(importedData.skills);
+      if (Array.isArray(importedData.resumes)) storageService.saveResumes(importedData.resumes);
+      if (Array.isArray(importedData.links)) storageService.saveLinks(importedData.links);
+      if (Array.isArray(importedData.appliedHackathons)) storageService.saveAppliedHackathons(importedData.appliedHackathons);
+      if (Array.isArray(importedData.appliedScholarships)) storageService.saveAppliedScholarships(importedData.appliedScholarships);
+      if (Array.isArray(importedData.activities)) {
+        setStorageItem(KEYS.ACTIVITIES, importedData.activities);
+        idbSet(KEYS.ACTIVITIES, importedData.activities);
+      }
 
       return true;
     } catch (err) {
@@ -240,14 +362,13 @@ export const storageService = {
     }
   },
 
-  // Reset to clean 0-item state (no mock data is ever restored)
   resetToDemoData: (): void => {
     storageService.clearToEmptyVault();
   },
 
   clearToEmptyVault: (): void => {
     localStorage.clear();
-    localStorage.setItem(VAULT_VERSION_KEY, 'v3_clean');
+    idbClearAll();
     setStorageItem(KEYS.PROFILE, initialProfile);
     setStorageItem(KEYS.DOCUMENTS, []);
     setStorageItem(KEYS.CERTIFICATES, []);

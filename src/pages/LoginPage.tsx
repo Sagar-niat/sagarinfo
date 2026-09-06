@@ -47,19 +47,27 @@ export const LoginPage: React.FC = () => {
         </div>
 
         {/* Biometric Unlock */}
-        <div className="p-4 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 text-center space-y-2">
-          <p className="text-xs font-bold text-cyan-400 flex items-center justify-center gap-1.5">
-            <ScanFace className="w-4 h-4 text-cyan-400" /> Biometric Fingerprint / Face ID
-          </p>
+        <div className="p-4 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 text-center space-y-2.5">
+          <div className="flex items-center justify-between text-xs">
+            <span className="font-bold text-cyan-400 flex items-center gap-1.5">
+              <ScanFace className="w-4 h-4 text-cyan-400" /> Device Biometrics
+            </span>
+            <span className="text-[10px] font-semibold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full">
+              Hardware Sensor
+            </span>
+          </div>
           <button
             type="button"
             onClick={handleBiometricClick}
             disabled={biometricLoading}
-            className="w-full py-3 rounded-2xl bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-slate-950 font-black text-xs flex items-center justify-center gap-2 shadow-lg shadow-cyan-500/20 touch-target transition-all"
+            className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-slate-950 font-black text-xs flex items-center justify-center gap-2 shadow-lg shadow-cyan-500/20 touch-target transition-all active:scale-[0.98]"
           >
             <Fingerprint className="w-5 h-5 text-slate-950" />
-            <span>{biometricLoading ? 'Verifying Device Sensor...' : 'Unlock with Fingerprint / Face ID'}</span>
+            <span>{biometricLoading ? 'Touch Sensor / Scanning Face...' : 'Unlock with Fingerprint / Face ID'}</span>
           </button>
+          <p className="text-[10px] text-slate-400">
+            Uses your laptop's Windows Hello, Mac Touch ID, or phone's fingerprint sensor
+          </p>
         </div>
 
         <div className="flex items-center gap-3">
