@@ -210,7 +210,29 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = () => {
       </div>
 
       {/* Grid or List Document View */}
-      {viewMode === 'grid' ? (
+      {filteredDocs.length === 0 ? (
+        <div className="text-center py-16 px-6 glass-panel rounded-3xl border border-dashed border-slate-300 dark:border-slate-800 space-y-4">
+          <div className="w-16 h-16 rounded-3xl bg-cyan-500/15 text-cyan-400 flex items-center justify-center mx-auto shadow-lg">
+            <FileText className="w-8 h-8" />
+          </div>
+          <div className="space-y-1 max-w-md mx-auto">
+            <h3 className="text-base font-extrabold text-slate-900 dark:text-white">
+              {searchQuery || selectedCategory !== 'All' ? 'No matching documents found' : 'Your Document Vault is Completely Clean'}
+            </h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+              {searchQuery || selectedCategory !== 'All'
+                ? 'Try adjusting your category filter or search query.'
+                : 'All mock documents have been removed. This vault belongs strictly to Sagar. Upload your genuine Aadhaar, PAN card, degree certificates, marksheets, or ID cards.'}
+            </p>
+          </div>
+          <button
+            onClick={openAddModal}
+            className="px-5 py-2.5 rounded-full bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs shadow-lg inline-flex items-center gap-2 touch-target transition-all"
+          >
+            <Plus className="w-4 h-4" /> Upload Real Document
+          </button>
+        </div>
+      ) : viewMode === 'grid' ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {filteredDocs.map((doc) => (
             <div

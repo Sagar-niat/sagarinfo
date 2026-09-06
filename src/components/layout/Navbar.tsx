@@ -7,6 +7,7 @@ import {
   Sun,
   Moon,
   Upload,
+  Smartphone,
 } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
@@ -16,12 +17,14 @@ interface NavbarProps {
   currentTab: string;
   onOpenMobileMenu: () => void;
   onOpenUploadModal: () => void;
+  onOpenMobileConnect?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
   currentTab,
   onOpenMobileMenu,
   onOpenUploadModal,
+  onOpenMobileConnect,
 }) => {
   const { effectiveTheme, toggleTheme } = useTheme();
   const { isPublicView } = useAuth();
@@ -111,6 +114,19 @@ export const Navbar: React.FC<NavbarProps> = ({
               Ctrl K
             </kbd>
           </button>
+
+          {/* Connect Phone Quick Action */}
+          {onOpenMobileConnect && (
+            <button
+              onClick={onOpenMobileConnect}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 text-xs font-bold transition-all shadow-[0_0_10px_rgba(6,182,212,0.15)]"
+              title="Connect & Use on Mobile Phone"
+            >
+              <Smartphone className="w-3.5 h-3.5 text-cyan-400" />
+              <span className="hidden sm:inline">Phone Sync</span>
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            </button>
+          )}
 
           {/* Quick Upload Pill Button */}
           <button

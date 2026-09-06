@@ -183,42 +183,64 @@ export const Dashboard: React.FC<DashboardProps> = ({
             </button>
           </div>
 
-          <div className="space-y-3">
-            {documents.slice(0, 4).map((doc) => (
-              <div
-                key={doc.id}
-                className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-cyan-500/40 transition-all"
-              >
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="p-2 rounded-xl bg-cyan-500/10 text-cyan-500">
-                    <FileText className="w-4 h-4" />
-                  </div>
-                  <div className="min-w-0">
-                    <h4 className="text-xs font-bold text-slate-900 dark:text-white truncate">{doc.title}</h4>
-                    <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                      {doc.category.toUpperCase()} • {doc.fileSize}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => openPreviewFile(doc.previewUrl || doc.fileUrl, doc.title, doc.fileType)}
-                    className="p-1.5 rounded-lg text-slate-500 hover:text-cyan-500 hover:bg-slate-200 dark:hover:bg-slate-800"
-                    title="Preview File"
-                  >
-                    <Eye className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => toggleFavoriteDocument(doc.id)}
-                    className={`p-1.5 rounded-lg ${doc.isFavorite ? 'text-amber-400' : 'text-slate-400'}`}
-                  >
-                    <Star className="w-4 h-4 fill-current" />
-                  </button>
-                </div>
+          {documents.length === 0 ? (
+            <div className="text-center py-8 px-4 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-dashed border-slate-300 dark:border-slate-800 space-y-3">
+              <div className="w-12 h-12 rounded-2xl bg-cyan-500/15 text-cyan-400 flex items-center justify-center mx-auto">
+                <FileText className="w-6 h-6" />
               </div>
-            ))}
-          </div>
+              <div className="space-y-1">
+                <h4 className="text-sm font-extrabold text-slate-900 dark:text-white">
+                  Your Vault is 100% Clean & Private
+                </h4>
+                <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md mx-auto">
+                  All dummy files have been cleared. This digital vault belongs strictly to Sagar. Upload your real identity documents, marksheets, and official credentials.
+                </p>
+              </div>
+              <button
+                onClick={onOpenUploadModal}
+                className="px-4 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs shadow-md inline-flex items-center gap-1.5 touch-target transition-all"
+              >
+                <Plus className="w-3.5 h-3.5" /> Upload First Document
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {documents.slice(0, 4).map((doc) => (
+                <div
+                  key={doc.id}
+                  className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-cyan-500/40 transition-all"
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="p-2 rounded-xl bg-cyan-500/10 text-cyan-500">
+                      <FileText className="w-4 h-4" />
+                    </div>
+                    <div className="min-w-0">
+                      <h4 className="text-xs font-bold text-slate-900 dark:text-white truncate">{doc.title}</h4>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                        {doc.category.toUpperCase()} • {doc.fileSize}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => openPreviewFile(doc.previewUrl || doc.fileUrl, doc.title, doc.fileType)}
+                      className="p-1.5 rounded-lg text-slate-500 hover:text-cyan-500 hover:bg-slate-200 dark:hover:bg-slate-800"
+                      title="Preview File"
+                    >
+                      <Eye className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => toggleFavoriteDocument(doc.id)}
+                      className={`p-1.5 rounded-lg ${doc.isFavorite ? 'text-amber-400' : 'text-slate-400'}`}
+                    >
+                      <Star className="w-4 h-4 fill-current" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="glass-panel p-6 rounded-3xl border border-slate-200 dark:border-slate-800 space-y-4">

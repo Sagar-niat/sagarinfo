@@ -1,0 +1,42 @@
+{
+  "profile": {
+    "id": "sagar-profile-01",
+    "fullName": "Sagar",
+    "tagline": "Personal Digital Vault & Portfolio",
+    "bio": "My personal documents, verified credentials, projects, and achievements — all in one private place.",
+    "email": "",
+    "phone": "",
+    "location": "",
+    "education": "",
+    "currentStatus": "Personal Digital Vault Ready",
+    "careerGoal": "",
+    "interests": [],
+    "avatarUrl": "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=600&q=80",
+    "linkedin": "",
+    "github": "",
+    "twitter": "",
+    "website": "",
+    "isPublicProfile": false
+  },
+  "documents": [],
+  "certificates": [],
+  "projects": [],
+  "presentations": [],
+  "achievements": [],
+  "education": [],
+  "skills": [],
+  "resumes": [],
+  "links": [],
+  "appliedHackathons": [],
+  "appliedScholarships": [],
+  "activities": [
+    {
+      "id": "act-01",
+      "action": "Initialized Clean Personal Vault",
+      "targetName": "Sagar Digital Vault",
+      "targetType": "Document",
+      "timestamp": "Just now"
+    }
+  ],
+  "updatedAt": "2026-09-06T18:50:00.000Z"
+}

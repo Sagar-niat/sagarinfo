@@ -110,6 +110,7 @@ interface DataContextType {
   showToast: (text: string, type?: 'success' | 'error' | 'info') => void;
   resetAllData: () => void;
   startFreshCleanVault: () => void;
+  importBackupData: (data: any) => boolean;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -157,6 +158,27 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  // Cross-Device Sync on mount (laptop & phone synchronization)
+  useEffect(() => {
+    storageService.pullFullStateFromServer().then((remoteData) => {
+      if (remoteData) {
+        if (remoteData.profile) setProfile(remoteData.profile);
+        if (Array.isArray(remoteData.documents)) setDocuments(remoteData.documents);
+        if (Array.isArray(remoteData.certificates)) setCertificates(remoteData.certificates);
+        if (Array.isArray(remoteData.projects)) setProjects(remoteData.projects);
+        if (Array.isArray(remoteData.presentations)) setPresentations(remoteData.presentations);
+        if (Array.isArray(remoteData.achievements)) setAchievements(remoteData.achievements);
+        if (Array.isArray(remoteData.education)) setEducation(remoteData.education);
+        if (Array.isArray(remoteData.skills)) setSkills(remoteData.skills);
+        if (Array.isArray(remoteData.resumes)) setResumes(remoteData.resumes);
+        if (Array.isArray(remoteData.links)) setLinks(remoteData.links);
+        if (Array.isArray(remoteData.appliedHackathons)) setAppliedHackathons(remoteData.appliedHackathons);
+        if (Array.isArray(remoteData.appliedScholarships)) setAppliedScholarships(remoteData.appliedScholarships);
+        if (Array.isArray(remoteData.activities)) setActivities(remoteData.activities);
+      }
+    });
   }, []);
 
   // Update Profile
@@ -485,26 +507,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setPreviewFile(null);
   };
 
-  // Reset to default sample demo data
+  // Clear all data to fresh 100% clean vault (no mock records)
   const resetAllData = () => {
-    storageService.resetToDemoData();
-    setProfile(storageService.getProfile());
-    setDocuments(storageService.getDocuments());
-    setCertificates(storageService.getCertificates());
-    setProjects(storageService.getProjects());
-    setPresentations(storageService.getPresentations());
-    setAchievements(storageService.getAchievements());
-    setEducation(storageService.getEducation());
-    setSkills(storageService.getSkills());
-    setResumes(storageService.getResumes());
-    setLinks(storageService.getLinks());
-    setAppliedHackathons(storageService.getAppliedHackathons());
-    setAppliedScholarships(storageService.getAppliedScholarships());
-    setActivities(storageService.getActivities());
-    showToast('Reset all data to SAGARINFO initial state', 'info');
-  };
-
-  const startFreshCleanVault = () => {
     storageService.clearToEmptyVault();
     setProfile(storageService.getProfile());
     setDocuments([]);
@@ -520,6 +524,34 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setAppliedScholarships([]);
     setActivities(storageService.getActivities());
     showToast('Vault cleared to a 100% fresh clean state. Add your own real documents!', 'success');
+  };
+
+  const startFreshCleanVault = () => {
+    resetAllData();
+  };
+
+  const importBackupData = (importedData: any): boolean => {
+    const success = storageService.importAllData(importedData);
+    if (success) {
+      setProfile(storageService.getProfile());
+      setDocuments(storageService.getDocuments());
+      setCertificates(storageService.getCertificates());
+      setProjects(storageService.getProjects());
+      setPresentations(storageService.getPresentations());
+      setAchievements(storageService.getAchievements());
+      setEducation(storageService.getEducation());
+      setSkills(storageService.getSkills());
+      setResumes(storageService.getResumes());
+      setLinks(storageService.getLinks());
+      setAppliedHackathons(storageService.getAppliedHackathons());
+      setAppliedScholarships(storageService.getAppliedScholarships());
+      setActivities(storageService.getActivities());
+      showToast('Vault backup imported successfully!', 'success');
+      return true;
+    } else {
+      showToast('Failed to import vault backup: invalid format', 'error');
+      return false;
+    }
   };
 
   return (
@@ -598,6 +630,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         showToast,
         resetAllData,
         startFreshCleanVault,
+        importBackupData,
       }}
     >
       {children}

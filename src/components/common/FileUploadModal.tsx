@@ -57,16 +57,15 @@ export const FileUploadModal: React.FC<FileUploadModalProps> = ({ isOpen, onClos
     if (!title) return;
 
     setUploading(true);
-    let cur = 0;
-    const interval = setInterval(() => {
-      cur += 25;
-      setProgress(cur);
-      if (cur >= 100) {
-        clearInterval(interval);
+    setProgress(30);
 
-        const ext = selectedFile ? selectedFile.name.split('.').pop()?.toLowerCase() as FileFormat : 'pdf';
+    const finalizeAdd = (dataUrl?: string) => {
+      setProgress(100);
+      setTimeout(() => {
+        const ext = (selectedFile ? selectedFile.name.split('.').pop()?.toLowerCase() : 'pdf') as FileFormat;
         const sizeStr = selectedFile ? `${(selectedFile.size / (1024 * 1024)).toFixed(1)} MB` : '1.2 MB';
         const bytes = selectedFile ? selectedFile.size : 1200000;
+        const resolvedUrl = dataUrl || 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf';
 
         addDocument({
           title,
@@ -75,8 +74,8 @@ export const FileUploadModal: React.FC<FileUploadModalProps> = ({ isOpen, onClos
           fileSize: sizeStr,
           fileSizeBytes: bytes,
           fileType: ext || 'pdf',
-          fileUrl: selectedFile ? URL.createObjectURL(selectedFile) : 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
-          previewUrl: selectedFile && selectedFile.type.startsWith('image/') ? URL.createObjectURL(selectedFile) : undefined,
+          fileUrl: resolvedUrl,
+          previewUrl: resolvedUrl,
           description,
           tags: tagsInput.split(',').map((t) => t.trim()).filter(Boolean),
           isFavorite: false,
@@ -89,8 +88,21 @@ export const FileUploadModal: React.FC<FileUploadModalProps> = ({ isOpen, onClos
         setTitle('');
         setDescription('');
         onClose();
-      }
-    }, 150);
+      }, 250);
+    };
+
+    if (selectedFile) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        finalizeAdd(reader.result as string);
+      };
+      reader.onerror = () => {
+        finalizeAdd(URL.createObjectURL(selectedFile));
+      };
+      reader.readAsDataURL(selectedFile);
+    } else {
+      finalizeAdd();
+    }
   };
 
   return (
