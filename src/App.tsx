@@ -11,7 +11,6 @@ import { Toast } from './components/common/Toast';
 import { FilePreviewModal } from './components/common/FilePreviewModal';
 import { FileUploadModal } from './components/common/FileUploadModal';
 import { EditProfileModal } from './components/common/EditProfileModal';
-import { MobileConnectModal } from './components/common/MobileConnectModal';
 
 import { Dashboard } from './pages/Dashboard';
 import { DocumentsPage } from './pages/DocumentsPage';
@@ -36,7 +35,6 @@ const MainLayout: React.FC = () => {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [isEditProfileModalOpen, setIsEditProfileModalOpen] = useState(false);
-  const [isMobileConnectOpen, setIsMobileConnectOpen] = useState(false);
 
   if (!isAuthenticated && !isPublicView) {
     return <LoginPage />;
@@ -113,7 +111,6 @@ const MainLayout: React.FC = () => {
           currentTab={currentTab}
           onOpenMobileMenu={() => setIsMobileOpen(true)}
           onOpenUploadModal={() => setIsUploadModalOpen(true)}
-          onOpenMobileConnect={() => setIsMobileConnectOpen(true)}
         />
 
         <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto">
@@ -127,7 +124,6 @@ const MainLayout: React.FC = () => {
       <FilePreviewModal />
       <FileUploadModal isOpen={isUploadModalOpen} onClose={() => setIsUploadModalOpen(false)} />
       <EditProfileModal isOpen={isEditProfileModalOpen} onClose={() => setIsEditProfileModalOpen(false)} />
-      <MobileConnectModal isOpen={isMobileConnectOpen} onClose={() => setIsMobileConnectOpen(false)} />
       <Toast />
     </div>
   );

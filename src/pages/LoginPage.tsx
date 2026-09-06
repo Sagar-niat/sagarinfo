@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { ShieldCheck, Lock, Key, ArrowRight, Fingerprint, ScanFace } from 'lucide-react';
+import { ShieldCheck, Lock, ArrowRight, Fingerprint, ScanFace, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 export const LoginPage: React.FC = () => {
   const { login, loginWithBiometrics, hasPasskeyRegistered } = useAuth();
-  const [email, setEmail] = useState('sagar@example.com');
-  const [password, setPassword] = useState('sagar2026');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [biometricLoading, setBiometricLoading] = useState(false);
@@ -15,10 +15,10 @@ export const LoginPage: React.FC = () => {
     setError('');
     setLoading(true);
 
-    const res = await login(email, password);
+    const res = await login('sagar@sagarinfo.dev', password);
     setLoading(false);
     if (!res.success) {
-      setError(res.error || 'Invalid passcode credentials');
+      setError(res.error || 'Incorrect passcode. Please try again.');
     }
   };
 
@@ -28,7 +28,7 @@ export const LoginPage: React.FC = () => {
     const res = await loginWithBiometrics();
     setBiometricLoading(false);
     if (!res.success) {
-      setError(res.error || 'Biometric authentication was cancelled or failed.');
+      setError(res.error || 'Biometric verification was cancelled or not recognized.');
     }
   };
 
@@ -36,69 +36,82 @@ export const LoginPage: React.FC = () => {
     <div className="min-h-screen w-full flex items-center justify-center p-4 bg-slate-950 text-slate-100">
       <div className="w-full max-w-md bg-slate-900 border border-cyan-500/30 rounded-3xl p-8 shadow-2xl space-y-6 animate-modal-pop">
         <div className="text-center space-y-2">
-          <div className="w-12 h-12 rounded-2xl bg-cyan-600 flex items-center justify-center font-black text-slate-950 text-xl mx-auto shadow-lg shadow-cyan-600/30">
+          <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-cyan-600 to-indigo-600 flex items-center justify-center font-black text-white text-2xl mx-auto shadow-lg shadow-cyan-600/30">
             S
           </div>
           <h1 className="text-2xl font-black tracking-tight text-white">SAGARINFO</h1>
-          <p className="text-xs text-slate-400 font-medium">Everything about me. One place.</p>
+          <p className="text-xs text-slate-400 font-medium">Private Personal Vault & Operating System</p>
+          <div className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/25 text-[11px] text-cyan-400 font-bold">
+            <Lock className="w-3 h-3" /> Mandatory Authentication Required
+          </div>
         </div>
 
-        {/* Real Biometric Fingerprint / Face ID Unlock Button */}
+        {/* Biometric Unlock */}
         <div className="p-4 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 text-center space-y-2">
           <p className="text-xs font-bold text-cyan-400 flex items-center justify-center gap-1.5">
-            <ScanFace className="w-4 h-4 text-cyan-400" /> Biometric & Passkey Unlock
+            <ScanFace className="w-4 h-4 text-cyan-400" /> Biometric Fingerprint / Face ID
           </p>
           <button
             type="button"
             onClick={handleBiometricClick}
             disabled={biometricLoading}
-            className="w-full py-3 rounded-2xl bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-slate-950 font-black text-xs flex items-center justify-center gap-2 shadow-lg shadow-cyan-500/20 touch-target"
+            className="w-full py-3 rounded-2xl bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-slate-950 font-black text-xs flex items-center justify-center gap-2 shadow-lg shadow-cyan-500/20 touch-target transition-all"
           >
             <Fingerprint className="w-5 h-5 text-slate-950" />
-            <span>{biometricLoading ? 'Verifying Biometrics...' : 'Unlock with Fingerprint / Face ID'}</span>
+            <span>{biometricLoading ? 'Verifying Device Sensor...' : 'Unlock with Fingerprint / Face ID'}</span>
           </button>
         </div>
 
         <div className="flex items-center gap-3">
           <div className="flex-1 h-px bg-slate-800" />
-          <span className="text-[11px] font-bold text-slate-500 uppercase">OR USE PASSCODE</span>
+          <span className="text-[11px] font-bold text-slate-500 uppercase">OR ENTER PASSCODE</span>
           <div className="flex-1 h-px bg-slate-800" />
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1">Vault Email ID</label>
-            <input
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-xs font-medium text-white"
-            />
+            <label className="block text-xs font-bold text-slate-300 mb-1.5">
+              Master Vault Passcode *
+            </label>
+            <div className="relative">
+              <input
+                type={showPassword ? 'text' : 'password'}
+                required
+                autoFocus
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Enter passcode (Default: sagar2026)"
+                className="w-full pl-4 pr-11 py-3 rounded-xl bg-slate-800 border border-slate-700 text-sm font-medium text-white placeholder:text-slate-500 focus:outline-none focus:border-cyan-500 transition-colors"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-3 text-slate-400 hover:text-white"
+              >
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
           </div>
 
-          <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1">Master Vault Passcode</label>
-            <input
-              type="password"
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-xs font-medium text-white"
-            />
-          </div>
-
-          {error && <p className="text-xs text-rose-400 font-medium">{error}</p>}
+          {error && (
+            <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs font-medium">
+              {error}
+            </div>
+          )}
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs flex items-center justify-center gap-2 border border-slate-700 transition-all touch-target"
+            className="w-full py-3 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-md transition-all touch-target"
           >
-            <span>{loading ? 'Authenticating...' : 'Unlock with Passcode'}</span>
-            <ArrowRight className="w-4 h-4 text-cyan-400" />
+            <span>{loading ? 'Verifying Passcode...' : 'Unlock Sagar Vault'}</span>
+            <ArrowRight className="w-4 h-4" />
           </button>
         </form>
+
+        <p className="text-[11px] text-center text-slate-500">
+          This digital hub is private and protected. Default passcode: <code className="text-cyan-400 font-mono">sagar2026</code>
+        </p>
       </div>
     </div>
   );

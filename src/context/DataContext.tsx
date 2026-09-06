@@ -160,26 +160,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  // Cross-Device Sync on mount (laptop & phone synchronization)
-  useEffect(() => {
-    storageService.pullFullStateFromServer().then((remoteData) => {
-      if (remoteData) {
-        if (remoteData.profile) setProfile(remoteData.profile);
-        if (Array.isArray(remoteData.documents)) setDocuments(remoteData.documents);
-        if (Array.isArray(remoteData.certificates)) setCertificates(remoteData.certificates);
-        if (Array.isArray(remoteData.projects)) setProjects(remoteData.projects);
-        if (Array.isArray(remoteData.presentations)) setPresentations(remoteData.presentations);
-        if (Array.isArray(remoteData.achievements)) setAchievements(remoteData.achievements);
-        if (Array.isArray(remoteData.education)) setEducation(remoteData.education);
-        if (Array.isArray(remoteData.skills)) setSkills(remoteData.skills);
-        if (Array.isArray(remoteData.resumes)) setResumes(remoteData.resumes);
-        if (Array.isArray(remoteData.links)) setLinks(remoteData.links);
-        if (Array.isArray(remoteData.appliedHackathons)) setAppliedHackathons(remoteData.appliedHackathons);
-        if (Array.isArray(remoteData.appliedScholarships)) setAppliedScholarships(remoteData.appliedScholarships);
-        if (Array.isArray(remoteData.activities)) setActivities(remoteData.activities);
-      }
-    });
-  }, []);
 
   // Update Profile
   const updateProfile = (newProfile: UserProfile) => {

@@ -86,74 +86,62 @@ export const storageService = {
   getProfile: (): UserProfile => getStorageItem(KEYS.PROFILE, initialProfile),
   saveProfile: (profile: UserProfile): UserProfile => {
     setStorageItem(KEYS.PROFILE, profile);
-    storageService.pushFullStateToServer();
     return profile;
   },
 
   getDocuments: (): DocumentItem[] => getStorageItem(KEYS.DOCUMENTS, initialDocuments),
   saveDocuments: (docs: DocumentItem[]): void => {
     setStorageItem(KEYS.DOCUMENTS, docs);
-    storageService.pushFullStateToServer();
   },
 
   getCertificates: (): CertificateItem[] => getStorageItem(KEYS.CERTIFICATES, initialCertificates),
   saveCertificates: (certs: CertificateItem[]): void => {
     setStorageItem(KEYS.CERTIFICATES, certs);
-    storageService.pushFullStateToServer();
   },
 
   getProjects: (): ProjectItem[] => getStorageItem(KEYS.PROJECTS, initialProjects),
   saveProjects: (projects: ProjectItem[]): void => {
     setStorageItem(KEYS.PROJECTS, projects);
-    storageService.pushFullStateToServer();
   },
 
   getPresentations: (): PresentationItem[] => getStorageItem(KEYS.PRESENTATIONS, initialPresentations),
   savePresentations: (pres: PresentationItem[]): void => {
     setStorageItem(KEYS.PRESENTATIONS, pres);
-    storageService.pushFullStateToServer();
   },
 
   getAchievements: (): AchievementItem[] => getStorageItem(KEYS.ACHIEVEMENTS, initialAchievements),
   saveAchievements: (ach: AchievementItem[]): void => {
     setStorageItem(KEYS.ACHIEVEMENTS, ach);
-    storageService.pushFullStateToServer();
   },
 
   getEducation: (): EducationItem[] => getStorageItem(KEYS.EDUCATION, initialEducation),
   saveEducation: (edu: EducationItem[]): void => {
     setStorageItem(KEYS.EDUCATION, edu);
-    storageService.pushFullStateToServer();
   },
 
   getSkills: (): SkillItem[] => getStorageItem(KEYS.SKILLS, initialSkills),
   saveSkills: (skills: SkillItem[]): void => {
     setStorageItem(KEYS.SKILLS, skills);
-    storageService.pushFullStateToServer();
   },
 
   getResumes: (): ResumeVersion[] => getStorageItem(KEYS.RESUMES, initialResumeVersions),
   saveResumes: (resumes: ResumeVersion[]): void => {
     setStorageItem(KEYS.RESUMES, resumes);
-    storageService.pushFullStateToServer();
   },
 
   getLinks: (): ImportantLink[] => getStorageItem(KEYS.LINKS, initialLinks),
   saveLinks: (links: ImportantLink[]): void => {
     setStorageItem(KEYS.LINKS, links);
-    storageService.pushFullStateToServer();
   },
 
   getAppliedHackathons: (): AppliedHackathon[] => getStorageItem(KEYS.HACKATHONS, initialAppliedHackathons),
   saveAppliedHackathons: (hacks: AppliedHackathon[]): void => {
     setStorageItem(KEYS.HACKATHONS, hacks);
-    storageService.pushFullStateToServer();
   },
 
   getAppliedScholarships: (): AppliedScholarship[] => getStorageItem(KEYS.SCHOLARSHIPS, initialAppliedScholarships),
   saveAppliedScholarships: (schol: AppliedScholarship[]): void => {
     setStorageItem(KEYS.SCHOLARSHIPS, schol);
-    storageService.pushFullStateToServer();
   },
 
   getActivities: (): ActivityLog[] => getStorageItem(KEYS.ACTIVITIES, initialActivities),
@@ -214,47 +202,7 @@ export const storageService = {
     updatedAt: new Date().toISOString(),
   }),
 
-  // Push updates to Vite sync server (persisting to laptop disk)
-  pushFullStateToServer: async () => {
-    try {
-      const data = storageService.getFullState();
-      await fetch('/api/vault-sync', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      });
-    } catch {
-      // Offline fallback: localStorage is primary
-    }
-  },
 
-  // Pull updates from Vite sync server (called when app loads on phone or laptop)
-  pullFullStateFromServer: async (): Promise<any | null> => {
-    try {
-      const res = await fetch('/api/vault-sync');
-      if (!res.ok) return null;
-      const data = await res.json();
-      if (!data || data.empty) return null;
-
-      if (data.profile) setStorageItem(KEYS.PROFILE, data.profile);
-      if (Array.isArray(data.documents)) setStorageItem(KEYS.DOCUMENTS, data.documents);
-      if (Array.isArray(data.certificates)) setStorageItem(KEYS.CERTIFICATES, data.certificates);
-      if (Array.isArray(data.projects)) setStorageItem(KEYS.PROJECTS, data.projects);
-      if (Array.isArray(data.presentations)) setStorageItem(KEYS.PRESENTATIONS, data.presentations);
-      if (Array.isArray(data.achievements)) setStorageItem(KEYS.ACHIEVEMENTS, data.achievements);
-      if (Array.isArray(data.education)) setStorageItem(KEYS.EDUCATION, data.education);
-      if (Array.isArray(data.skills)) setStorageItem(KEYS.SKILLS, data.skills);
-      if (Array.isArray(data.resumes)) setStorageItem(KEYS.RESUMES, data.resumes);
-      if (Array.isArray(data.links)) setStorageItem(KEYS.LINKS, data.links);
-      if (Array.isArray(data.appliedHackathons)) setStorageItem(KEYS.HACKATHONS, data.appliedHackathons);
-      if (Array.isArray(data.appliedScholarships)) setStorageItem(KEYS.SCHOLARSHIPS, data.appliedScholarships);
-      if (Array.isArray(data.activities)) setStorageItem(KEYS.ACTIVITIES, data.activities);
-
-      return data;
-    } catch {
-      return null;
-    }
-  },
 
   exportAllData: (): void => {
     const fullData = storageService.getFullState();
@@ -285,7 +233,6 @@ export const storageService = {
       if (Array.isArray(importedData.appliedScholarships)) setStorageItem(KEYS.SCHOLARSHIPS, importedData.appliedScholarships);
       if (Array.isArray(importedData.activities)) setStorageItem(KEYS.ACTIVITIES, importedData.activities);
 
-      storageService.pushFullStateToServer();
       return true;
     } catch (err) {
       console.error('Failed to import vault data:', err);
@@ -322,6 +269,5 @@ export const storageService = {
         timestamp: 'Just now',
       },
     ]);
-    storageService.pushFullStateToServer();
   },
 };

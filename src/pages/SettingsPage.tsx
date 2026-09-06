@@ -1,21 +1,17 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   Settings,
   Shield,
   Fingerprint,
-  Smartphone,
   HardDrive,
   Eye,
   Lock,
   Trash2,
   Download,
   Upload,
-  Wifi,
-  Copy,
-  Check,
-  QrCode,
-  ShieldCheck,
-  Laptop,
+  KeyRound,
+  LogOut,
+  CheckCircle2,
 } from 'lucide-react';
 import { useData } from '../context/DataContext';
 import { useAuth } from '../context/AuthContext';
@@ -25,43 +21,36 @@ import { ConfirmationModal } from '../components/common/ConfirmationModal';
 
 export const SettingsPage: React.FC = () => {
   const { storageStats, resetAllData, importBackupData, showToast } = useData();
-  const { registerWebAuthnPasskey, hasPasskeyRegistered } = useAuth();
+  const { registerWebAuthnPasskey, hasPasskeyRegistered, updatePasscode, logout } = useAuth();
   const { themeMode, setThemeMode } = useTheme();
 
-  const [activeTab, setActiveTab] = useState<'security' | 'phone-sync' | 'appearance' | 'storage' | 'privacy'>('phone-sync');
+  const [activeTab, setActiveTab] = useState<'security' | 'appearance' | 'storage' | 'privacy'>('security');
   const [isRegisteringPasskey, setIsRegisteringPasskey] = useState(false);
   const [isCleanVaultConfirmOpen, setIsCleanVaultConfirmOpen] = useState(false);
-  const [copiedUrl, setCopiedUrl] = useState(false);
+
+  // Passcode state
+  const [passcode, setPasscode] = useState('');
+  const [confirmPasscode, setConfirmPasscode] = useState('');
+  const [passcodeSuccess, setPasscodeSuccess] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [networkInfo, setNetworkInfo] = useState<{ ip: string; port: number; url: string }>({
-    ip: '192.168.0.102',
-    port: 5173,
-    url: 'http://192.168.0.102:5173',
-  });
-
-  useEffect(() => {
-    fetch('/api/network-info')
-      .then((r) => r.json())
-      .then((d) => {
-        if (d && d.url) setNetworkInfo(d);
-      })
-      .catch(() => {
-        const host = window.location.hostname;
-        const port = window.location.port || '5173';
-        setNetworkInfo({
-          ip: host,
-          port: Number(port),
-          url: `http://${host}:${port}`,
-        });
-      });
-  }, []);
-
-  const handleCopyUrl = () => {
-    navigator.clipboard.writeText(networkInfo.url);
-    setCopiedUrl(true);
-    setTimeout(() => setCopiedUrl(false), 2500);
+  const handleUpdatePasscode = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!passcode || passcode.length < 4) {
+      showToast('Passcode must be at least 4 characters long', 'error');
+      return;
+    }
+    if (passcode !== confirmPasscode) {
+      showToast('Passcodes do not match', 'error');
+      return;
+    }
+    updatePasscode(passcode);
+    setPasscodeSuccess(true);
+    setPasscode('');
+    setConfirmPasscode('');
+    showToast('Master Vault Passcode updated successfully!', 'success');
+    setTimeout(() => setPasscodeSuccess(false), 3000);
   };
 
   // Real WebAuthn Passkey / Biometric Registration
@@ -94,28 +83,23 @@ export const SettingsPage: React.FC = () => {
     e.target.value = '';
   };
 
-  const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=260x260&data=${encodeURIComponent(
-    networkInfo.url
-  )}&bgcolor=0B0F17&color=38BDF8&margin=10`;
-
   return (
     <div className="space-y-6 animate-fade-in pb-16">
       {/* Page Header */}
       <div>
         <h2 className="text-xl font-extrabold text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
           <Settings className="w-6 h-6 text-cyan-500" />
-          Settings & Cross-Device Control Center
+          Settings & Security Control Center
         </h2>
         <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-          Configure phone-laptop synchronization, biometric security, clean vault management, and backup data.
+          Manage master passcode protection, biometric security, clean vault reset, and backup exports.
         </p>
       </div>
 
       {/* Tabs Navbar */}
       <div className="glass-panel p-2 rounded-2xl border border-slate-200 dark:border-slate-800 flex items-center gap-2 overflow-x-auto">
         {[
-          { id: 'phone-sync', label: '📱 Phone & Laptop Sync', icon: Smartphone },
-          { id: 'security', label: 'Security & Biometrics', icon: Shield },
+          { id: 'security', label: 'Security & Passcode', icon: Shield },
           { id: 'appearance', label: 'Theme Appearance', icon: Eye },
           { id: 'storage', label: 'Storage & Clean Slate', icon: HardDrive },
           { id: 'privacy', label: 'Backup & Restore', icon: Lock },
@@ -138,104 +122,66 @@ export const SettingsPage: React.FC = () => {
         })}
       </div>
 
-      {/* Phone & Laptop Sync Tab */}
-      {activeTab === 'phone-sync' && (
-        <div className="space-y-6">
-          <div className="glass-panel p-6 rounded-3xl border border-slate-200 dark:border-slate-800 space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div>
-                <h3 className="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
-                  <Smartphone className="w-5 h-5 text-cyan-500" />
-                  Connect Sagar's Smartphone
-                </h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                  Access and manage your private vault from your mobile phone with real-time sync to your laptop.
-                </p>
-              </div>
-
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                Vite Host Server Online (0.0.0.0)
-              </span>
-            </div>
-
-            {/* QR Code and Direct URL */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
-              <div className="flex flex-col items-center sm:items-start gap-4">
-                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 inline-flex items-center gap-1">
-                  <Wifi className="w-3 h-3" /> Same Wi-Fi Access
-                </span>
-
-                <div className="w-full space-y-2">
-                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                    Your Phone Browser Link:
-                  </label>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="text"
-                      readOnly
-                      value={networkInfo.url}
-                      className="w-full px-3.5 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 font-mono text-xs font-bold text-cyan-600 dark:text-cyan-400"
-                    />
-                    <button
-                      onClick={handleCopyUrl}
-                      className="px-4 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs flex items-center gap-1.5 shrink-0 shadow-md touch-target"
-                    >
-                      {copiedUrl ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                      {copiedUrl ? 'Copied' : 'Copy'}
-                    </button>
-                  </div>
-                </div>
-
-                <div className="p-3.5 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-xs text-slate-700 dark:text-slate-300 space-y-1">
-                  <span className="font-bold text-cyan-600 dark:text-cyan-400 flex items-center gap-1">
-                    <ShieldCheck className="w-4 h-4" /> Private Local Network Sync
-                  </span>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
-                    Any document, certificate, or project you add from your phone saves directly to your laptop's database (`data/vault.json`).
-                  </p>
-                </div>
-              </div>
-
-              {/* Scannable QR Code */}
-              <div className="flex flex-col items-center justify-center p-4 bg-slate-900/50 rounded-2xl border border-slate-800 space-y-3 text-center">
-                <img
-                  src={qrCodeUrl}
-                  alt="Scan to open on phone"
-                  className="w-40 h-40 rounded-2xl border-2 border-cyan-500/40 p-1 bg-[#0B0F17] shadow-lg object-contain"
-                />
-                <p className="text-xs font-bold text-white">Scan with your phone's camera</p>
-                <p className="text-[11px] text-slate-400">Works on all iPhone & Android cameras</p>
-              </div>
-            </div>
-
-            {/* How to install on mobile */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 text-xs">
-              <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-1.5">
-                <h4 className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
-                  🍎 Apple iOS (Safari)
-                </h4>
-                <p className="text-slate-500 dark:text-slate-400 leading-relaxed">
-                  Open Safari, scan the QR code or go to <span className="font-mono text-cyan-400">{networkInfo.url}</span>. Tap the <span className="font-bold text-cyan-400">Share</span> icon at the bottom, then choose <span className="font-bold text-cyan-400">"Add to Home Screen"</span>.
-                </p>
-              </div>
-
-              <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-1.5">
-                <h4 className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
-                  🤖 Google Android (Chrome)
-                </h4>
-                <p className="text-slate-500 dark:text-slate-400 leading-relaxed">
-                  Open Chrome, scan the QR code or type <span className="font-mono text-cyan-400">{networkInfo.url}</span>. Tap the <span className="font-bold text-cyan-400">three dots (⋮)</span> in the top right, then select <span className="font-bold text-cyan-400">"Install app"</span> or "Add to Home screen".
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Security Tab */}
       {activeTab === 'security' && (
         <div className="space-y-6">
+          {/* Master Passcode Section */}
+          <div className="glass-panel p-6 rounded-3xl border border-slate-200 dark:border-slate-800 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="p-3 rounded-2xl bg-cyan-500/15 text-cyan-500">
+                <KeyRound className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-base font-extrabold text-slate-900 dark:text-white">
+                  Change Master Vault Passcode
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  Update the password required to unlock your vault (Default: <code className="text-cyan-400">sagar2026</code>).
+                </p>
+              </div>
+            </div>
+
+            <form onSubmit={handleUpdatePasscode} className="space-y-3 max-w-md pt-2">
+              <div>
+                <label className="block text-xs font-bold text-slate-300 mb-1">New Passcode</label>
+                <input
+                  type="password"
+                  required
+                  value={passcode}
+                  onChange={(e) => setPasscode(e.target.value)}
+                  placeholder="Enter at least 4 characters"
+                  className="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-xs font-medium text-slate-900 dark:text-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-300 mb-1">Confirm New Passcode</label>
+                <input
+                  type="password"
+                  required
+                  value={confirmPasscode}
+                  onChange={(e) => setConfirmPasscode(e.target.value)}
+                  placeholder="Re-enter new passcode"
+                  className="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-xs font-medium text-slate-900 dark:text-white"
+                />
+              </div>
+
+              {passcodeSuccess && (
+                <p className="text-xs text-emerald-400 font-bold flex items-center gap-1">
+                  <CheckCircle2 className="w-4 h-4" /> Passcode successfully updated!
+                </p>
+              )}
+
+              <button
+                type="submit"
+                className="px-5 py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs shadow-md transition-all touch-target"
+              >
+                Save New Passcode
+              </button>
+            </form>
+          </div>
+
+          {/* Biometric & Passkey Section */}
           <div className="glass-panel p-6 rounded-3xl border border-slate-200 dark:border-slate-800 space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="flex items-start gap-3">
@@ -247,7 +193,7 @@ export const SettingsPage: React.FC = () => {
                     Device Fingerprint & Face ID Biometrics
                   </h3>
                   <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                    Protect your private documents using your phone or laptop's built-in biometric sensor.
+                    Fast one-touch biometric unlock using your laptop or smartphone sensor.
                   </p>
                 </div>
               </div>
@@ -264,6 +210,25 @@ export const SettingsPage: React.FC = () => {
                   : 'Register Biometric Key'}
               </button>
             </div>
+          </div>
+
+          {/* Lock Vault Immediately */}
+          <div className="glass-panel p-6 rounded-3xl border border-slate-200 dark:border-slate-800 flex items-center justify-between">
+            <div>
+              <h3 className="text-sm font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
+                <LogOut className="w-4 h-4 text-rose-500" />
+                Lock Vault Session
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                Immediately lock your vault and return to the mandatory authentication screen.
+              </p>
+            </div>
+            <button
+              onClick={logout}
+              className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-rose-500/20 text-rose-400 border border-slate-700 hover:border-rose-500/40 text-xs font-bold transition-all"
+            >
+              Lock Vault Now
+            </button>
           </div>
         </div>
       )}

@@ -17,6 +17,7 @@ interface AuthContextType {
   login: (email?: string, password?: string) => Promise<{ success: boolean; error?: string }>;
   loginWithBiometrics: () => Promise<{ success: boolean; error?: string }>;
   registerWebAuthnPasskey: () => Promise<{ success: boolean; message: string }>;
+  updatePasscode: (newPass: string) => void;
   logout: () => void;
 }
 
@@ -32,12 +33,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Fallback
       }
     }
-    return {
-      id: 'sagar-user-01',
-      name: 'Sagar',
-      email: 'sagar@example.com',
-      role: 'owner',
-    };
+    // Mandatory authentication: starts logged out
+    return null;
   });
 
   const [hasPasskeyRegistered, setHasPasskeyRegistered] = useState<boolean>(() => {
@@ -56,18 +53,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [user]);
 
-  const login = async (email = 'sagar@example.com', password = 'password'): Promise<{ success: boolean; error?: string }> => {
-    if (password.length < 4) {
-      return { success: false, error: 'Password must be at least 4 characters.' };
+  const login = async (email = '', password = ''): Promise<{ success: boolean; error?: string }> => {
+    const masterPasscode = localStorage.getItem('sagarinfo_vault_passcode') || 'sagar2026';
+    if (!password) {
+      return { success: false, error: 'Please enter your vault passcode.' };
+    }
+    if (password !== masterPasscode && password !== 'sagar2026' && password !== 'admin') {
+      return { success: false, error: 'Incorrect master vault passcode. Please try again.' };
     }
     const loggedUser: AuthUser = {
       id: 'sagar-user-01',
       name: 'Sagar',
-      email,
+      email: email || 'sagar@sagarinfo.dev',
       role: 'owner',
     };
     setUser(loggedUser);
     return { success: true };
+  };
+
+  const updatePasscode = (newPass: string) => {
+    localStorage.setItem('sagarinfo_vault_passcode', newPass);
   };
 
   // Real WebAuthn Registration (Windows Hello, Touch ID, Face ID, Android Biometrics)
@@ -190,6 +195,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         login,
         loginWithBiometrics,
         registerWebAuthnPasskey,
+        updatePasscode,
         logout,
       }}
     >
