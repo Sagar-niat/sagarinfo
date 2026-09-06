@@ -127,9 +127,28 @@ export const MobileConnectModal: React.FC<MobileConnectModalProps> = ({ isOpen, 
               100% Private to Sagar — Stored on Your Laptop
             </h5>
             <p className="text-slate-600 dark:text-slate-300 mt-0.5 leading-relaxed">
-              Documents or profile changes you make on your phone are automatically saved directly to your laptop. No third parties can see your documents.
+              Documents or profile changes you make on your phone are automatically saved directly to your laptop (`data/vault.json`).
             </p>
           </div>
+        </div>
+
+        {/* Troubleshooting Help if phone cannot connect */}
+        <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-xs space-y-2">
+          <div className="flex items-center gap-2 font-bold text-amber-500 dark:text-amber-400">
+            <span>⚠️</span>
+            <span>Phone says "Site can't be reached"? Follow these 2 fixes:</span>
+          </div>
+          <ul className="list-disc list-inside text-[11px] text-slate-700 dark:text-slate-300 space-y-1.5 pl-1 leading-relaxed">
+            <li>
+              <strong>Turn off Mobile Data (4G/5G)</strong> on your phone and connect to the <strong>same Wi-Fi</strong> network as your laptop.
+            </li>
+            <li>
+              <strong>Best & Fastest Fix: Laptop Mobile Hotspot</strong>: In Windows taskbar, turn on <em>"Mobile Hotspot"</em> and connect your phone to your laptop's hotspot Wi-Fi. This immediately bypasses any router or firewall restrictions!
+            </li>
+            <li>
+              <strong>Vercel Online URL</strong>: Once pushed to Vercel, you can simply open your Vercel web URL on your phone browser anytime, anywhere!
+            </li>
+          </ul>
         </div>
 
         {/* How to Add to Home Screen (PWA experience) */}
