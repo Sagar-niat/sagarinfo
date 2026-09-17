@@ -65,7 +65,7 @@ export const FileUploadModal: React.FC<FileUploadModalProps> = ({ isOpen, onClos
         const ext = (selectedFile ? selectedFile.name.split('.').pop()?.toLowerCase() : 'pdf') as FileFormat;
         const sizeStr = selectedFile ? `${(selectedFile.size / (1024 * 1024)).toFixed(1)} MB` : '1.2 MB';
         const bytes = selectedFile ? selectedFile.size : 1200000;
-        const resolvedUrl = dataUrl || 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf';
+        const resolvedUrl = dataUrl || '';
 
         addDocument({
           title,
