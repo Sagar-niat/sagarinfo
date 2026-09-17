@@ -5,10 +5,10 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'placeholder-a
 
 export const isSupabaseConfigured = (): boolean => {
   return Boolean(
-    import.meta.env.VITE_SUPABASE_URL && 
-    import.meta.env.VITE_SUPABASE_ANON_KEY &&
-    import.meta.env.VITE_SUPABASE_URL !== 'https://placeholder-project.supabase.co' &&
-    !import.meta.env.VITE_SUPABASE_URL.includes('your-supabase-project')
+    import.meta.env.VITE_SUPABASE_URL &&
+      import.meta.env.VITE_SUPABASE_ANON_KEY &&
+      import.meta.env.VITE_SUPABASE_URL !== 'https://placeholder-project.supabase.co' &&
+      !import.meta.env.VITE_SUPABASE_URL.includes('your-supabase-project')
   );
 };
 
@@ -19,23 +19,110 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   },
 });
 
+// Helper to get current authenticated user ID
+const getCurrentUserId = async (): Promise<string | null> => {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    return session?.user?.id || null;
+  } catch {
+    return null;
+  }
+};
+
 // Database Cloud Synchronization Helper Engine
 export const supabaseService = {
-  // Sync Documents
-  fetchDocuments: async () => {
+  // --- PROFILES ---
+  fetchProfile: async () => {
     if (!isSupabaseConfigured()) return null;
-    const { data, error } = await supabase.from('documents').select('*');
+    const userId = await getCurrentUserId();
+    if (!userId) return null;
+    const { data, error } = await supabase.from('profiles').select('*').eq('id', userId).single();
     if (error) {
-      console.warn('Supabase fetch error for documents:', error.message);
+      console.warn('Supabase fetch profile notice:', error.message);
       return null;
     }
     return data;
   },
 
+  syncProfile: async (profile: any) => {
+    if (!isSupabaseConfigured()) return;
+    const userId = await getCurrentUserId();
+    if (!userId) return;
+
+    const payload = {
+      id: userId,
+      full_name: profile.fullName || profile.full_name || 'Sagar',
+      email: profile.email || '',
+      tagline: profile.tagline || 'Everything about me. One place.',
+      bio: profile.bio || '',
+      phone: profile.phone || '',
+      location: profile.location || '',
+      education: profile.education || '',
+      current_status: profile.currentStatus || '',
+      career_goal: profile.careerGoal || '',
+      interests: profile.interests || [],
+      avatar_url: profile.avatarUrl || profile.avatar_url || '',
+      linkedin: profile.linkedin || '',
+      github: profile.github || '',
+      twitter: profile.twitter || '',
+      website: profile.website || '',
+    };
+
+    const { error } = await supabase.from('profiles').upsert([payload]);
+    if (error) console.error('Supabase profile sync error:', error.message);
+  },
+
+  // --- DOCUMENTS ---
+  fetchDocuments: async () => {
+    if (!isSupabaseConfigured()) return null;
+    const { data, error } = await supabase.from('documents').select('*');
+    if (error) {
+      console.warn('Supabase fetch documents notice:', error.message);
+      return null;
+    }
+    return data.map((d: any) => ({
+      id: d.id,
+      title: d.title,
+      category: d.category || 'other',
+      fileName: d.file_name,
+      fileSize: d.file_size,
+      fileSizeBytes: Number(d.file_size_bytes || 0),
+      fileType: d.file_type,
+      fileUrl: d.file_url,
+      previewUrl: d.preview_url,
+      uploadDate: d.upload_date || new Date().toISOString().split('T')[0],
+      description: d.description || '',
+      tags: d.tags || [],
+      isFavorite: Boolean(d.is_favorite),
+      isPrivate: Boolean(d.is_private),
+    }));
+  },
+
   syncDocument: async (doc: any) => {
     if (!isSupabaseConfigured()) return;
-    const { error } = await supabase.from('documents').upsert([doc]);
-    if (error) console.error('Supabase document upsert error:', error.message);
+    const userId = await getCurrentUserId();
+    if (!userId) return;
+
+    const payload = {
+      id: doc.id,
+      user_id: userId,
+      title: doc.title,
+      category: doc.category || 'other',
+      file_name: doc.fileName || doc.file_name || 'file',
+      file_size: doc.fileSize || doc.file_size || '1 MB',
+      file_size_bytes: doc.fileSizeBytes || doc.file_size_bytes || 1024,
+      file_type: doc.fileType || doc.file_type || 'application/pdf',
+      file_url: doc.fileUrl || doc.file_url || '',
+      preview_url: doc.previewUrl || doc.preview_url || '',
+      upload_date: doc.uploadDate || new Date().toISOString().split('T')[0],
+      description: doc.description || '',
+      tags: doc.tags || [],
+      is_favorite: Boolean(doc.isFavorite),
+      is_private: Boolean(doc.isPrivate),
+    };
+
+    const { error } = await supabase.from('documents').upsert([payload]);
+    if (error) console.error('Supabase document sync error:', error.message);
   },
 
   deleteDocument: async (id: string) => {
@@ -44,59 +131,281 @@ export const supabaseService = {
     if (error) console.error('Supabase document delete error:', error.message);
   },
 
-  // Sync Certificates
+  // --- CERTIFICATES ---
   fetchCertificates: async () => {
     if (!isSupabaseConfigured()) return null;
     const { data, error } = await supabase.from('certificates').select('*');
     if (error) return null;
-    return data;
+    return data.map((c: any) => ({
+      id: c.id,
+      title: c.title,
+      issuingOrganization: c.issuing_organization,
+      issueDate: c.issue_date,
+      credentialId: c.credential_id,
+      credentialUrl: c.credential_url,
+      verificationUrl: c.verification_url,
+      fileUrl: c.file_url,
+      imageUrl: c.image_url,
+      skills: c.skills || [],
+      description: c.description,
+      tags: c.tags || [],
+      isFavorite: Boolean(c.is_favorite),
+    }));
   },
 
   syncCertificate: async (cert: any) => {
     if (!isSupabaseConfigured()) return;
-    await supabase.from('certificates').upsert([cert]);
+    const userId = await getCurrentUserId();
+    if (!userId) return;
+
+    const payload = {
+      id: cert.id,
+      user_id: userId,
+      title: cert.title,
+      issuing_organization: cert.issuingOrganization || cert.issuing_organization || '',
+      issue_date: cert.issueDate || cert.issue_date || null,
+      credential_id: cert.credentialId || cert.credential_id || '',
+      credential_url: cert.credentialUrl || cert.credential_url || '',
+      verification_url: cert.verificationUrl || cert.verification_url || '',
+      file_url: cert.fileUrl || cert.file_url || '',
+      image_url: cert.imageUrl || cert.image_url || '',
+      skills: cert.skills || [],
+      description: cert.description || '',
+      tags: cert.tags || [],
+      is_favorite: Boolean(cert.isFavorite),
+    };
+
+    const { error } = await supabase.from('certificates').upsert([payload]);
+    if (error) console.error('Supabase certificate sync error:', error.message);
   },
 
   deleteCertificate: async (id: string) => {
     if (!isSupabaseConfigured()) return;
-    await supabase.from('certificates').delete().eq('id', id);
+    const { error } = await supabase.from('certificates').delete().eq('id', id);
+    if (error) console.error('Supabase certificate delete error:', error.message);
   },
 
-  // Sync Projects
+  // --- PROJECTS ---
   fetchProjects: async () => {
     if (!isSupabaseConfigured()) return null;
     const { data, error } = await supabase.from('projects').select('*');
     if (error) return null;
-    return data;
+    return data.map((p: any) => ({
+      id: p.id,
+      name: p.name,
+      shortDescription: p.short_description,
+      detailedDescription: p.detailed_description,
+      category: p.category,
+      technologies: p.technologies || [],
+      githubUrl: p.github_url,
+      liveUrl: p.live_url,
+      demoVideoUrl: p.demo_video_url,
+      presentationUrl: p.presentation_url,
+      documentationUrl: p.documentation_url,
+      screenshots: p.screenshots || [],
+      status: p.status || 'Completed',
+      startDate: p.start_date,
+      endDate: p.end_date,
+      teamMembers: p.team_members || [],
+      hackathonName: p.hackathon_name,
+      achievement: p.achievement,
+      problemStatement: p.problem_statement,
+      solution: p.solution,
+      features: p.features || [],
+      architectureOverview: p.architecture_overview,
+      isFavorite: Boolean(p.is_favorite),
+      isPublic: Boolean(p.is_public),
+    }));
   },
 
   syncProject: async (proj: any) => {
     if (!isSupabaseConfigured()) return;
-    await supabase.from('projects').upsert([proj]);
+    const userId = await getCurrentUserId();
+    if (!userId) return;
+
+    const payload = {
+      id: proj.id,
+      user_id: userId,
+      name: proj.name,
+      short_description: proj.shortDescription || proj.short_description || '',
+      detailed_description: proj.detailedDescription || proj.detailed_description || '',
+      category: proj.category || 'Web Application',
+      technologies: proj.technologies || [],
+      github_url: proj.githubUrl || proj.github_url || '',
+      live_url: proj.liveUrl || proj.live_url || '',
+      demo_video_url: proj.demoVideoUrl || proj.demo_video_url || '',
+      presentation_url: proj.presentationUrl || proj.presentation_url || '',
+      documentation_url: proj.documentationUrl || proj.documentation_url || '',
+      screenshots: proj.screenshots || [],
+      status: proj.status || 'Completed',
+      start_date: proj.startDate || proj.start_date || null,
+      end_date: proj.endDate || proj.end_date || null,
+      team_members: proj.teamMembers || proj.team_members || [],
+      hackathon_name: proj.hackathonName || proj.hackathon_name || '',
+      achievement: proj.achievement || '',
+      problem_statement: proj.problemStatement || proj.problem_statement || '',
+      solution: proj.solution || '',
+      features: proj.features || [],
+      architecture_overview: proj.architectureOverview || proj.architecture_overview || '',
+      is_favorite: Boolean(proj.isFavorite),
+      is_public: Boolean(proj.isPublic),
+    };
+
+    const { error } = await supabase.from('projects').upsert([payload]);
+    if (error) console.error('Supabase project sync error:', error.message);
   },
 
-  // Sync Education
+  deleteProject: async (id: string) => {
+    if (!isSupabaseConfigured()) return;
+    const { error } = await supabase.from('projects').delete().eq('id', id);
+    if (error) console.error('Supabase project delete error:', error.message);
+  },
+
+  // --- EDUCATION ---
   fetchEducation: async () => {
     if (!isSupabaseConfigured()) return null;
     const { data, error } = await supabase.from('education').select('*');
     if (error) return null;
-    return data;
+    return data.map((e: any) => ({
+      id: e.id,
+      degree: e.degree,
+      level: e.level,
+      institution: e.institution,
+      boardOrUniversity: e.board_or_university,
+      startYear: e.start_year,
+      endYear: e.end_year,
+      score: e.score,
+      status: e.status || 'Completed',
+      fieldOfStudy: e.field_of_study,
+      location: e.location,
+      highlights: e.highlights || [],
+      certificateUrl: e.certificate_url,
+    }));
   },
 
   syncEducation: async (edu: any) => {
     if (!isSupabaseConfigured()) return;
-    await supabase.from('education').upsert([edu]);
+    const userId = await getCurrentUserId();
+    if (!userId) return;
+
+    const payload = {
+      id: edu.id,
+      user_id: userId,
+      degree: edu.degree,
+      level: edu.level || 'B.Tech',
+      institution: edu.institution,
+      board_or_university: edu.boardOrUniversity || edu.board_or_university || '',
+      start_year: edu.startYear || edu.start_year || '',
+      end_year: edu.endYear || edu.end_year || '',
+      score: edu.score || '',
+      status: edu.status || 'Completed',
+      field_of_study: edu.fieldOfStudy || edu.field_of_study || '',
+      location: edu.location || '',
+      highlights: edu.highlights || [],
+      certificate_url: edu.certificateUrl || edu.certificate_url || '',
+    };
+
+    const { error } = await supabase.from('education').upsert([payload]);
+    if (error) console.error('Supabase education sync error:', error.message);
   },
 
-  // Sync Applied Hackathons
+  // --- APPLIED HACKATHONS ---
+  fetchAppliedHackathons: async () => {
+    if (!isSupabaseConfigured()) return null;
+    const { data, error } = await supabase.from('applied_hackathons').select('*');
+    if (error) return null;
+    return data.map((h: any) => ({
+      id: h.id,
+      name: h.name,
+      organizer: h.organizer,
+      applicationDate: h.application_date,
+      projectSubmitted: h.project_submitted,
+      status: h.status || 'Under Review',
+      prizePool: h.prize_pool,
+      submissionUrl: h.submission_url,
+      proofUrl: h.proof_url,
+      notes: h.notes,
+      isFavorite: Boolean(h.is_favorite),
+    }));
+  },
+
   syncHackathon: async (hack: any) => {
     if (!isSupabaseConfigured()) return;
-    await supabase.from('applied_hackathons').upsert([hack]);
+    const userId = await getCurrentUserId();
+    if (!userId) return;
+
+    const payload = {
+      id: hack.id,
+      user_id: userId,
+      name: hack.name,
+      organizer: hack.organizer,
+      application_date: hack.applicationDate || hack.application_date || null,
+      project_submitted: hack.projectSubmitted || hack.project_submitted || '',
+      status: hack.status || 'Under Review',
+      prize_pool: hack.prizePool || hack.prize_pool || '',
+      submission_url: hack.submissionUrl || hack.submission_url || '',
+      proof_url: hack.proofUrl || hack.proof_url || '',
+      notes: hack.notes || '',
+      is_favorite: Boolean(hack.isFavorite),
+    };
+
+    const { error } = await supabase.from('applied_hackathons').upsert([payload]);
+    if (error) console.error('Supabase hackathon sync error:', error.message);
   },
 
-  // Sync Applied Scholarships
+  deleteHackathon: async (id: string) => {
+    if (!isSupabaseConfigured()) return;
+    const { error } = await supabase.from('applied_hackathons').delete().eq('id', id);
+    if (error) console.error('Supabase hackathon delete error:', error.message);
+  },
+
+  // --- APPLIED SCHOLARSHIPS ---
+  fetchAppliedScholarships: async () => {
+    if (!isSupabaseConfigured()) return null;
+    const { data, error } = await supabase.from('applied_scholarships').select('*');
+    if (error) return null;
+    return data.map((s: any) => ({
+      id: s.id,
+      name: s.name,
+      provider: s.provider,
+      applicationDate: s.application_date,
+      amount: s.amount,
+      status: s.status || 'Under Review',
+      eligibility: s.eligibility,
+      submittedDocument: s.submitted_document,
+      proofUrl: s.proof_url,
+      notes: s.notes,
+      isFavorite: Boolean(s.is_favorite),
+    }));
+  },
+
   syncScholarship: async (schol: any) => {
     if (!isSupabaseConfigured()) return;
-    await supabase.from('applied_scholarships').upsert([schol]);
+    const userId = await getCurrentUserId();
+    if (!userId) return;
+
+    const payload = {
+      id: schol.id,
+      user_id: userId,
+      name: schol.name,
+      provider: schol.provider,
+      application_date: schol.applicationDate || schol.application_date || null,
+      amount: schol.amount || '',
+      status: schol.status || 'Under Review',
+      eligibility: schol.eligibility || '',
+      submitted_document: schol.submittedDocument || schol.submitted_document || '',
+      proof_url: schol.proofUrl || schol.proof_url || '',
+      notes: schol.notes || '',
+      is_favorite: Boolean(schol.isFavorite),
+    };
+
+    const { error } = await supabase.from('applied_scholarships').upsert([payload]);
+    if (error) console.error('Supabase scholarship sync error:', error.message);
+  },
+
+  deleteScholarship: async (id: string) => {
+    if (!isSupabaseConfigured()) return;
+    const { error } = await supabase.from('applied_scholarships').delete().eq('id', id);
+    if (error) console.error('Supabase scholarship delete error:', error.message);
   },
 };

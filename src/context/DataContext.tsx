@@ -43,7 +43,7 @@ interface DataContextType {
 
   // Actions
   updateProfile: (profile: UserProfile) => void;
-  
+
   // Document Vault
   addDocument: (doc: Omit<DocumentItem, 'id' | 'uploadDate'>) => void;
   updateDocument: (doc: DocumentItem) => void;
@@ -103,7 +103,7 @@ interface DataContextType {
   // Modals & Search Controls
   isCommandPaletteOpen: boolean;
   setCommandPaletteOpen: (open: boolean) => void;
-  
+
   previewFile: { url: string; title: string; type: string } | null;
   openPreviewFile: (url: string, title: string, type?: string) => void;
   closePreviewFile: () => void;
@@ -116,6 +116,18 @@ interface DataContextType {
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
+
+// Helper for generating standard PostgreSQL compatible UUIDs
+const generateUUID = (): string => {
+  if (typeof window !== 'undefined' && window.crypto && window.crypto.randomUUID) {
+    return window.crypto.randomUUID();
+  }
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+};
 
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user } = useAuth();
@@ -137,7 +149,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [previewFile, setPreviewFile] = useState<{ url: string; title: string; type: string } | null>(null);
   const [toast, setToast] = useState<ToastMessage | null>(null);
 
-  // Sync authenticated Supabase user profile & records on login
+  // Sync authenticated Supabase user profile & records across all devices on login
   useEffect(() => {
     if (user) {
       setProfile((prev) => {
@@ -150,19 +162,40 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return updated;
       });
 
-      // Load Supabase records if configured
+      // Load all records from Supabase cloud PostgreSQL tables for this user account
       if (isSupabaseConfigured()) {
+        supabaseService.fetchProfile().then((profData) => {
+          if (profData) {
+            setProfile((prev) => ({
+              ...prev,
+              fullName: profData.full_name || prev.fullName,
+              email: profData.email || prev.email,
+              tagline: profData.tagline || prev.tagline,
+              bio: profData.bio || prev.bio,
+              phone: profData.phone || prev.phone,
+              location: profData.location || prev.location,
+              avatarUrl: profData.avatar_url || prev.avatarUrl,
+            }));
+          }
+        });
+
         supabaseService.fetchDocuments().then((docs) => {
-          if (Array.isArray(docs) && docs.length > 0) setDocuments(docs);
+          if (Array.isArray(docs)) setDocuments(docs);
         });
         supabaseService.fetchCertificates().then((certs) => {
-          if (Array.isArray(certs) && certs.length > 0) setCertificates(certs);
+          if (Array.isArray(certs)) setCertificates(certs);
         });
         supabaseService.fetchProjects().then((projs) => {
-          if (Array.isArray(projs) && projs.length > 0) setProjects(projs);
+          if (Array.isArray(projs)) setProjects(projs);
         });
         supabaseService.fetchEducation().then((edu) => {
-          if (Array.isArray(edu) && edu.length > 0) setEducation(edu);
+          if (Array.isArray(edu)) setEducation(edu);
+        });
+        supabaseService.fetchAppliedHackathons().then((hacks) => {
+          if (Array.isArray(hacks)) setAppliedHackathons(hacks);
+        });
+        supabaseService.fetchAppliedScholarships().then((schols) => {
+          if (Array.isArray(schols)) setAppliedScholarships(schols);
         });
       }
     }
@@ -193,22 +226,23 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
+
   // Hydrate full state & heavy files from persistent IndexedDB on mount
   useEffect(() => {
     storageService.hydrateFromIndexedDB().then((data) => {
       if (data) {
         if (data.profile) setProfile(data.profile);
-        if (Array.isArray(data.documents)) setDocuments(data.documents);
-        if (Array.isArray(data.certificates)) setCertificates(data.certificates);
-        if (Array.isArray(data.projects)) setProjects(data.projects);
+        if (Array.isArray(data.documents) && data.documents.length > 0) setDocuments(data.documents);
+        if (Array.isArray(data.certificates) && data.certificates.length > 0) setCertificates(data.certificates);
+        if (Array.isArray(data.projects) && data.projects.length > 0) setProjects(data.projects);
         if (Array.isArray(data.presentations)) setPresentations(data.presentations);
         if (Array.isArray(data.achievements)) setAchievements(data.achievements);
-        if (Array.isArray(data.education)) setEducation(data.education);
+        if (Array.isArray(data.education) && data.education.length > 0) setEducation(data.education);
         if (Array.isArray(data.skills)) setSkills(data.skills);
         if (Array.isArray(data.resumes)) setResumes(data.resumes);
         if (Array.isArray(data.links)) setLinks(data.links);
-        if (Array.isArray(data.appliedHackathons)) setAppliedHackathons(data.appliedHackathons);
-        if (Array.isArray(data.appliedScholarships)) setAppliedScholarships(data.appliedScholarships);
+        if (Array.isArray(data.appliedHackathons) && data.appliedHackathons.length > 0) setAppliedHackathons(data.appliedHackathons);
+        if (Array.isArray(data.appliedScholarships) && data.appliedScholarships.length > 0) setAppliedScholarships(data.appliedScholarships);
         if (Array.isArray(data.activities)) setActivities(data.activities);
       }
     });
@@ -218,30 +252,33 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const updateProfile = (newProfile: UserProfile) => {
     setProfile(newProfile);
     storageService.saveProfile(newProfile);
+    supabaseService.syncProfile(newProfile);
     storageService.addActivity('Updated profile information', newProfile.fullName, 'Document');
     setActivities(storageService.getActivities());
-    showToast('Profile updated successfully');
+    showToast('Profile updated and synced to cloud');
   };
 
-  // Documents
+  // Documents (Supabase Cloud + Local)
   const addDocument = (doc: Omit<DocumentItem, 'id' | 'uploadDate'>) => {
     const newDoc: DocumentItem = {
       ...doc,
-      id: 'doc-' + Date.now(),
+      id: generateUUID(),
       uploadDate: new Date().toISOString().split('T')[0],
     };
     const updated = [newDoc, ...documents];
     setDocuments(updated);
     storageService.saveDocuments(updated);
+    supabaseService.syncDocument(newDoc);
     storageService.addActivity('Uploaded document', newDoc.title, 'Document');
     setActivities(storageService.getActivities());
-    showToast(`Uploaded "${newDoc.title}"`);
+    showToast(`Uploaded "${newDoc.title}" (Synced to Cloud)`);
   };
 
   const updateDocument = (doc: DocumentItem) => {
     const updated = documents.map((d) => (d.id === doc.id ? doc : d));
     setDocuments(updated);
     storageService.saveDocuments(updated);
+    supabaseService.syncDocument(doc);
     showToast(`Updated document "${doc.title}"`);
   };
 
@@ -250,6 +287,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const updated = documents.filter((d) => d.id !== id);
     setDocuments(updated);
     storageService.saveDocuments(updated);
+    supabaseService.deleteDocument(id);
     if (target) {
       storageService.addActivity('Deleted document', target.title, 'Document');
       setActivities(storageService.getActivities());
@@ -261,23 +299,27 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const updated = documents.map((d) => (d.id === id ? { ...d, isFavorite: !d.isFavorite } : d));
     setDocuments(updated);
     storageService.saveDocuments(updated);
+    const target = updated.find((d) => d.id === id);
+    if (target) supabaseService.syncDocument(target);
   };
 
-  // Certificates
+  // Certificates (Supabase Cloud + Local)
   const addCertificate = (cert: Omit<CertificateItem, 'id'>) => {
-    const newCert: CertificateItem = { ...cert, id: 'cert-' + Date.now() };
+    const newCert: CertificateItem = { ...cert, id: generateUUID() };
     const updated = [newCert, ...certificates];
     setCertificates(updated);
     storageService.saveCertificates(updated);
+    supabaseService.syncCertificate(newCert);
     storageService.addActivity('Added certificate', newCert.title, 'Certificate');
     setActivities(storageService.getActivities());
-    showToast(`Added certificate "${newCert.title}"`);
+    showToast(`Added certificate "${newCert.title}" (Synced to Cloud)`);
   };
 
   const updateCertificate = (cert: CertificateItem) => {
     const updated = certificates.map((c) => (c.id === cert.id ? cert : c));
     setCertificates(updated);
     storageService.saveCertificates(updated);
+    supabaseService.syncCertificate(cert);
     showToast(`Updated certificate "${cert.title}"`);
   };
 
@@ -285,6 +327,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const updated = certificates.filter((c) => c.id !== id);
     setCertificates(updated);
     storageService.saveCertificates(updated);
+    supabaseService.deleteCertificate(id);
     showToast('Certificate removed', 'info');
   };
 
@@ -292,23 +335,27 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const updated = certificates.map((c) => (c.id === id ? { ...c, isFavorite: !c.isFavorite } : c));
     setCertificates(updated);
     storageService.saveCertificates(updated);
+    const target = updated.find((c) => c.id === id);
+    if (target) supabaseService.syncCertificate(target);
   };
 
-  // Projects
+  // Projects (Supabase Cloud + Local)
   const addProject = (proj: Omit<ProjectItem, 'id'>) => {
-    const newProj: ProjectItem = { ...proj, id: 'proj-' + Date.now() };
+    const newProj: ProjectItem = { ...proj, id: generateUUID() };
     const updated = [newProj, ...projects];
     setProjects(updated);
     storageService.saveProjects(updated);
+    supabaseService.syncProject(newProj);
     storageService.addActivity('Created project hub entry', newProj.name, 'Project');
     setActivities(storageService.getActivities());
-    showToast(`Added project "${newProj.name}"`);
+    showToast(`Added project "${newProj.name}" (Synced to Cloud)`);
   };
 
   const updateProject = (proj: ProjectItem) => {
     const updated = projects.map((p) => (p.id === proj.id ? proj : p));
     setProjects(updated);
     storageService.saveProjects(updated);
+    supabaseService.syncProject(proj);
     showToast(`Updated project "${proj.name}"`);
   };
 
@@ -316,6 +363,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const updated = projects.filter((p) => p.id !== id);
     setProjects(updated);
     storageService.saveProjects(updated);
+    supabaseService.deleteProject(id);
     showToast('Project deleted', 'info');
   };
 
@@ -323,11 +371,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const updated = projects.map((p) => (p.id === id ? { ...p, isFavorite: !p.isFavorite } : p));
     setProjects(updated);
     storageService.saveProjects(updated);
+    const target = updated.find((p) => p.id === id);
+    if (target) supabaseService.syncProject(target);
   };
 
   // Presentations
   const addPresentation = (pres: Omit<PresentationItem, 'id'>) => {
-    const newPres: PresentationItem = { ...pres, id: 'pres-' + Date.now() };
+    const newPres: PresentationItem = { ...pres, id: generateUUID() };
     const updated = [newPres, ...presentations];
     setPresentations(updated);
     storageService.savePresentations(updated);
@@ -345,7 +395,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Achievements
   const addAchievement = (ach: Omit<AchievementItem, 'id'>) => {
-    const newAch: AchievementItem = { ...ach, id: 'ach-' + Date.now() };
+    const newAch: AchievementItem = { ...ach, id: generateUUID() };
     const updated = [newAch, ...achievements];
     setAchievements(updated);
     storageService.saveAchievements(updated);
@@ -361,25 +411,27 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     showToast('Achievement removed', 'info');
   };
 
-  // Education
+  // Education (Supabase Cloud + Local)
   const addEducation = (edu: Omit<EducationItem, 'id'>) => {
-    const newEdu: EducationItem = { ...edu, id: 'edu-' + Date.now() };
+    const newEdu: EducationItem = { ...edu, id: generateUUID() };
     const updated = [...education, newEdu];
     setEducation(updated);
     storageService.saveEducation(updated);
-    showToast('Education record added');
+    supabaseService.syncEducation(newEdu);
+    showToast('Education record added (Synced to Cloud)');
   };
 
   const updateEducation = (edu: EducationItem) => {
     const updated = education.map((e) => (e.id === edu.id ? edu : e));
     setEducation(updated);
     storageService.saveEducation(updated);
+    supabaseService.syncEducation(edu);
     showToast('Education record updated');
   };
 
   // Skills
   const addSkill = (skill: Omit<SkillItem, 'id'>) => {
-    const newSkill: SkillItem = { ...skill, id: 'skill-' + Date.now() };
+    const newSkill: SkillItem = { ...skill, id: generateUUID() };
     const updated = [...skills, newSkill];
     setSkills(updated);
     storageService.saveSkills(updated);
@@ -397,7 +449,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const addResumeVersion = (resume: Omit<ResumeVersion, 'id' | 'uploadDate'>) => {
     const newRes: ResumeVersion = {
       ...resume,
-      id: 'res-' + Date.now(),
+      id: generateUUID(),
       uploadDate: new Date().toISOString().split('T')[0],
     };
     let updated = [newRes, ...resumes];
@@ -439,7 +491,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Links
   const addLink = (link: Omit<ImportantLink, 'id'>) => {
-    const newLink: ImportantLink = { ...link, id: 'link-' + Date.now() };
+    const newLink: ImportantLink = { ...link, id: generateUUID() };
     const updated = [newLink, ...links];
     setLinks(updated);
     storageService.saveLinks(updated);
@@ -459,21 +511,23 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     storageService.saveLinks(updated);
   };
 
-  // Applied Hackathons
+  // Applied Hackathons (Supabase Cloud + Local)
   const addAppliedHackathon = (hack: Omit<AppliedHackathon, 'id'>) => {
-    const newHack: AppliedHackathon = { ...hack, id: 'hack-' + Date.now() };
+    const newHack: AppliedHackathon = { ...hack, id: generateUUID() };
     const updated = [newHack, ...appliedHackathons];
     setAppliedHackathons(updated);
     storageService.saveAppliedHackathons(updated);
+    supabaseService.syncHackathon(newHack);
     storageService.addActivity('Logged hackathon application', newHack.name, 'Hackathon');
     setActivities(storageService.getActivities());
-    showToast(`Added hackathon application "${newHack.name}"`);
+    showToast(`Added hackathon application "${newHack.name}" (Synced to Cloud)`);
   };
 
   const updateAppliedHackathon = (hack: AppliedHackathon) => {
     const updated = appliedHackathons.map((h) => (h.id === hack.id ? hack : h));
     setAppliedHackathons(updated);
     storageService.saveAppliedHackathons(updated);
+    supabaseService.syncHackathon(hack);
     showToast(`Updated hackathon "${hack.name}"`);
   };
 
@@ -482,6 +536,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const updated = appliedHackathons.filter((h) => h.id !== id);
     setAppliedHackathons(updated);
     storageService.saveAppliedHackathons(updated);
+    supabaseService.deleteHackathon(id);
     if (target) {
       storageService.addActivity('Removed hackathon entry', target.name, 'Hackathon');
       setActivities(storageService.getActivities());
@@ -493,23 +548,27 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const updated = appliedHackathons.map((h) => (h.id === id ? { ...h, isFavorite: !h.isFavorite } : h));
     setAppliedHackathons(updated);
     storageService.saveAppliedHackathons(updated);
+    const target = updated.find((h) => h.id === id);
+    if (target) supabaseService.syncHackathon(target);
   };
 
-  // Applied Scholarships
+  // Applied Scholarships (Supabase Cloud + Local)
   const addAppliedScholarship = (schol: Omit<AppliedScholarship, 'id'>) => {
-    const newSchol: AppliedScholarship = { ...schol, id: 'schol-' + Date.now() };
+    const newSchol: AppliedScholarship = { ...schol, id: generateUUID() };
     const updated = [newSchol, ...appliedScholarships];
     setAppliedScholarships(updated);
     storageService.saveAppliedScholarships(updated);
+    supabaseService.syncScholarship(newSchol);
     storageService.addActivity('Logged scholarship application', newSchol.name, 'Scholarship');
     setActivities(storageService.getActivities());
-    showToast(`Added scholarship application "${newSchol.name}"`);
+    showToast(`Added scholarship application "${newSchol.name}" (Synced to Cloud)`);
   };
 
   const updateAppliedScholarship = (schol: AppliedScholarship) => {
     const updated = appliedScholarships.map((s) => (s.id === schol.id ? schol : s));
     setAppliedScholarships(updated);
     storageService.saveAppliedScholarships(updated);
+    supabaseService.syncScholarship(schol);
     showToast(`Updated scholarship "${schol.name}"`);
   };
 
@@ -518,6 +577,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const updated = appliedScholarships.filter((s) => s.id !== id);
     setAppliedScholarships(updated);
     storageService.saveAppliedScholarships(updated);
+    supabaseService.deleteScholarship(id);
     if (target) {
       storageService.addActivity('Removed scholarship entry', target.name, 'Scholarship');
       setActivities(storageService.getActivities());
@@ -529,6 +589,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const updated = appliedScholarships.map((s) => (s.id === id ? { ...s, isFavorite: !s.isFavorite } : s));
     setAppliedScholarships(updated);
     storageService.saveAppliedScholarships(updated);
+    const target = updated.find((s) => s.id === id);
+    if (target) supabaseService.syncScholarship(target);
   };
 
   // File Preview Modal
@@ -540,7 +602,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setPreviewFile(null);
   };
 
-  // Clear all data to fresh 100% clean vault (no mock records)
+  // Clear all data to fresh 100% clean vault
   const resetAllData = () => {
     storageService.clearToEmptyVault();
     setProfile(storageService.getProfile());
@@ -556,7 +618,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setAppliedHackathons([]);
     setAppliedScholarships([]);
     setActivities(storageService.getActivities());
-    showToast('Vault cleared to a 100% fresh clean state. Add your own real documents!', 'success');
+    showToast('Vault cleared to a 100% fresh clean state.', 'success');
   };
 
   const startFreshCleanVault = () => {
