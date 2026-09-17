@@ -221,8 +221,8 @@ export const supabaseService = {
       if (uploadedUrl) {
         cloudFileUrl = uploadedUrl;
       } else {
-        // If storage bucket is not configured, store idb: reference or rawUrl if short
-        cloudFileUrl = rawFileUrl.length > 100000 ? `idb:${doc.id}` : rawFileUrl;
+        // Store full Data URL so mobile and all devices receive the document payload directly
+        cloudFileUrl = rawFileUrl;
       }
     }
 
