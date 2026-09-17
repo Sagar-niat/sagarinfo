@@ -62,23 +62,35 @@ export const uploadFileToSupabase = async (
 
     const cleanFileName = `${session.user.id}/${Date.now()}_${fileName.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
 
-    // Try uploading to Supabase Storage bucket 'vault' or 'documents'
-    const { data, error } = await supabase.storage
-      .from('vault')
-      .upload(cleanFileName, blob, { upsert: true, contentType: blob.type });
-
-    if (!error && data?.path) {
-      const { data: publicUrlData } = supabase.storage.from('vault').getPublicUrl(cleanFileName);
-      return publicUrlData.publicUrl;
+    // Auto-create public storage bucket 'documents' if absent
+    try {
+      await supabase.storage.createBucket('documents', { public: true });
+    } catch {
+      // Ignore if bucket already exists
     }
 
-    const { data: data2, error: error2 } = await supabase.storage
+    // Try uploading to Supabase Storage bucket 'documents'
+    const { data, error } = await supabase.storage
       .from('documents')
       .upload(cleanFileName, blob, { upsert: true, contentType: blob.type });
 
-    if (!error2 && data2?.path) {
+    if (!error && data?.path) {
       const { data: publicUrlData } = supabase.storage.from('documents').getPublicUrl(cleanFileName);
-      return publicUrlData.publicUrl;
+      if (publicUrlData?.publicUrl) {
+        return publicUrlData.publicUrl;
+      }
+    }
+
+    // Try fallback bucket 'vault'
+    const { data: data2, error: error2 } = await supabase.storage
+      .from('vault')
+      .upload(cleanFileName, blob, { upsert: true, contentType: blob.type });
+
+    if (!error2 && data2?.path) {
+      const { data: publicUrlData } = supabase.storage.from('vault').getPublicUrl(cleanFileName);
+      if (publicUrlData?.publicUrl) {
+        return publicUrlData.publicUrl;
+      }
     }
 
     console.warn('Supabase storage upload notice:', error?.message || error2?.message);

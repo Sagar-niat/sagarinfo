@@ -18,18 +18,56 @@ export const FilePreviewModal: React.FC = () => {
 
   const hasValidUrl = Boolean(rawUrl && rawUrl !== '#' && !rawUrl.includes('w3.org'));
 
-  const handleDownload = () => {
+  const handleDownload = async () => {
     if (!hasValidUrl) {
       showToast('No active document file available.', 'info');
       return;
     }
-    const link = document.createElement('a');
-    link.href = rawUrl;
-    link.download = previewFile.title || 'document';
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    showToast(`Downloading "${previewFile.title}"...`);
+
+    try {
+      if (rawUrl.startsWith('data:')) {
+        const arr = rawUrl.split(',');
+        const mimeMatch = arr[0].match(/:(.*?);/);
+        const mime = mimeMatch ? mimeMatch[1] : 'application/pdf';
+        const bstr = atob(arr[1]);
+        let n = bstr.length;
+        const u8arr = new Uint8Array(n);
+        while (n--) {
+          u8arr[n] = bstr.charCodeAt(n);
+        }
+        const blob = new Blob([u8arr], { type: mime });
+        const blobUrl = URL.createObjectURL(blob);
+
+        const link = document.createElement('a');
+        link.href = blobUrl;
+        link.download = previewFile.title || 'document';
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+      } else {
+        const response = await fetch(rawUrl);
+        const blob = await response.blob();
+        const blobUrl = URL.createObjectURL(blob);
+
+        const link = document.createElement('a');
+        link.href = blobUrl;
+        link.download = previewFile.title || 'document';
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+      }
+      showToast(`Downloading "${previewFile.title}"...`);
+    } catch (err) {
+      const link = document.createElement('a');
+      link.href = rawUrl;
+      link.target = '_blank';
+      link.download = previewFile.title || 'document';
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    }
   };
 
   const handleOpenNewTab = () => {
