@@ -16,6 +16,8 @@ import {
   StorageStats,
 } from '../types/sagarinfo';
 import { storageService } from '../services/storageService';
+import { supabaseService, isSupabaseConfigured } from '../services/supabase';
+import { useAuth } from './AuthContext';
 
 interface ToastMessage {
   id: string;
@@ -116,6 +118,7 @@ interface DataContextType {
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user } = useAuth();
   const [profile, setProfile] = useState<UserProfile>(storageService.getProfile);
   const [documents, setDocuments] = useState<DocumentItem[]>(storageService.getDocuments);
   const [certificates, setCertificates] = useState<CertificateItem[]>(storageService.getCertificates);
@@ -133,6 +136,37 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isCommandPaletteOpen, setCommandPaletteOpen] = useState<boolean>(false);
   const [previewFile, setPreviewFile] = useState<{ url: string; title: string; type: string } | null>(null);
   const [toast, setToast] = useState<ToastMessage | null>(null);
+
+  // Sync authenticated Supabase user profile & records on login
+  useEffect(() => {
+    if (user) {
+      setProfile((prev) => {
+        const updated = {
+          ...prev,
+          fullName: user.name || prev.fullName,
+          email: user.email || prev.email,
+        };
+        storageService.saveProfile(updated);
+        return updated;
+      });
+
+      // Load Supabase records if configured
+      if (isSupabaseConfigured()) {
+        supabaseService.fetchDocuments().then((docs) => {
+          if (Array.isArray(docs) && docs.length > 0) setDocuments(docs);
+        });
+        supabaseService.fetchCertificates().then((certs) => {
+          if (Array.isArray(certs) && certs.length > 0) setCertificates(certs);
+        });
+        supabaseService.fetchProjects().then((projs) => {
+          if (Array.isArray(projs) && projs.length > 0) setProjects(projs);
+        });
+        supabaseService.fetchEducation().then((edu) => {
+          if (Array.isArray(edu) && edu.length > 0) setEducation(edu);
+        });
+      }
+    }
+  }, [user]);
 
   const storageStats = storageService.calculateStorageStats(
     documents,

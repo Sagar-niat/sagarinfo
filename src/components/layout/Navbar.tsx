@@ -113,14 +113,14 @@ export const Navbar: React.FC<NavbarProps> = ({
             </kbd>
           </button>
 
-          {/* Lock Vault / Logout Quick Action */}
+          {/* Sign Out Quick Action */}
           <button
             onClick={logout}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-900/80 hover:bg-rose-500/15 text-slate-300 hover:text-rose-400 border border-slate-700/60 hover:border-rose-500/30 text-xs font-bold transition-all"
-            title="Lock Vault & Log Out"
+            title="Sign Out"
           >
             <LogOut className="w-3.5 h-3.5 text-rose-400" />
-            <span className="hidden sm:inline">Lock Vault</span>
+            <span className="hidden sm:inline">Sign Out</span>
           </button>
 
           {/* Quick Upload Pill Button */}

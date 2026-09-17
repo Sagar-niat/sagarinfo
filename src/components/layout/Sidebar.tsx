@@ -190,7 +190,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-medium text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors border border-transparent hover:border-rose-500/20"
         >
           <LogOut className="w-3.5 h-3.5" />
-          <span>Exit Vault / Logout</span>
+          <span>Sign Out</span>
         </button>
       </div>
     </aside>

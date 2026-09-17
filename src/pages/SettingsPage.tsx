@@ -147,12 +147,12 @@ export const SettingsPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Lock Vault Immediately */}
+          {/* Sign Out Immediately */}
           <div className="glass-panel p-6 rounded-3xl border border-slate-200 dark:border-slate-800 flex items-center justify-between">
             <div>
               <h3 className="text-sm font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
                 <LogOut className="w-4 h-4 text-rose-500" />
-                Sign Out / Lock Session
+                Sign Out of Account
               </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                 Sign out of your Supabase session and return to the login screen.
