@@ -322,8 +322,6 @@ export const supabaseService = {
       const uploadedUrl = await uploadFileToSupabase(fileUrl, cert.title || 'certificate.pdf', 'certificates');
       if (uploadedUrl) {
         fileUrl = uploadedUrl;
-      } else {
-        fileUrl = '';
       }
     }
 
@@ -332,8 +330,6 @@ export const supabaseService = {
       const uploadedImgUrl = await uploadFileToSupabase(imageUrl, (cert.title || 'cert') + '_img.png', 'certificates');
       if (uploadedImgUrl) {
         imageUrl = uploadedImgUrl;
-      } else {
-        imageUrl = '';
       }
     }
 

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { X, UploadCloud, FileText, CheckCircle2, Shield, Lock } from 'lucide-react';
 import { useData } from '../../context/DataContext';
 import { CategoryType, FileFormat } from '../../types/sagarinfo';
+import { compressImageDataUrl } from '../../utils/fileCompressor';
 
 interface FileUploadModalProps {
   isOpen: boolean;
@@ -93,8 +94,16 @@ export const FileUploadModal: React.FC<FileUploadModalProps> = ({ isOpen, onClos
 
     if (selectedFile) {
       const reader = new FileReader();
-      reader.onload = () => {
-        finalizeAdd(reader.result as string);
+      reader.onload = async () => {
+        let rawResult = (reader.result as string) || '';
+        if (rawResult && rawResult.startsWith('data:image/')) {
+          try {
+            rawResult = await compressImageDataUrl(rawResult);
+          } catch (e) {
+            console.warn('Image compression notice:', e);
+          }
+        }
+        finalizeAdd(rawResult);
       };
       reader.onerror = () => {
         finalizeAdd(URL.createObjectURL(selectedFile));
