@@ -162,7 +162,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return updated;
       });
 
-      // Load all records from Supabase cloud PostgreSQL tables for this user account
+      // Fetch user's cloud records directly from Supabase DB on login
       if (isSupabaseConfigured()) {
         supabaseService.fetchProfile().then((profData) => {
           if (profData) {
@@ -179,120 +179,62 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
         });
 
-        // 1. Documents Smart Cloud + Local Merge
+        // 1. Documents Cloud Sync
         supabaseService.fetchDocuments().then((cloudDocs) => {
-          if (Array.isArray(cloudDocs) && cloudDocs.length > 0) {
-            setDocuments((localDocs) => {
-              const mergedMap = new Map<string, DocumentItem>();
-              localDocs.forEach((d) => mergedMap.set(d.id, d));
-              cloudDocs.forEach((d) => mergedMap.set(d.id, d));
-              const merged = Array.from(mergedMap.values());
-              storageService.saveDocuments(merged);
-              return merged;
-            });
-          } else if (Array.isArray(cloudDocs) && cloudDocs.length === 0) {
-            setDocuments((localDocs) => {
-              localDocs.forEach((doc) => supabaseService.syncDocument(doc));
-              return localDocs;
-            });
+          if (Array.isArray(cloudDocs)) {
+            setDocuments(cloudDocs);
+            storageService.saveDocuments(cloudDocs);
           }
         });
 
-        // 2. Certificates Smart Merge
+        // 2. Certificates Cloud Sync
         supabaseService.fetchCertificates().then((cloudCerts) => {
-          if (Array.isArray(cloudCerts) && cloudCerts.length > 0) {
-            setCertificates((localCerts) => {
-              const mergedMap = new Map<string, CertificateItem>();
-              localCerts.forEach((c) => mergedMap.set(c.id, c));
-              cloudCerts.forEach((c) => mergedMap.set(c.id, c));
-              const merged = Array.from(mergedMap.values());
-              storageService.saveCertificates(merged);
-              return merged;
-            });
-          } else if (Array.isArray(cloudCerts) && cloudCerts.length === 0) {
-            setCertificates((localCerts) => {
-              localCerts.forEach((cert) => supabaseService.syncCertificate(cert));
-              return localCerts;
-            });
+          if (Array.isArray(cloudCerts)) {
+            setCertificates(cloudCerts);
+            storageService.saveCertificates(cloudCerts);
           }
         });
 
-        // 3. Projects Smart Merge
+        // 3. Projects Cloud Sync
         supabaseService.fetchProjects().then((cloudProjs) => {
-          if (Array.isArray(cloudProjs) && cloudProjs.length > 0) {
-            setProjects((localProjs) => {
-              const mergedMap = new Map<string, ProjectItem>();
-              localProjs.forEach((p) => mergedMap.set(p.id, p));
-              cloudProjs.forEach((p) => mergedMap.set(p.id, p));
-              const merged = Array.from(mergedMap.values());
-              storageService.saveProjects(merged);
-              return merged;
-            });
-          } else if (Array.isArray(cloudProjs) && cloudProjs.length === 0) {
-            setProjects((localProjs) => {
-              localProjs.forEach((proj) => supabaseService.syncProject(proj));
-              return localProjs;
-            });
+          if (Array.isArray(cloudProjs)) {
+            setProjects(cloudProjs);
+            storageService.saveProjects(cloudProjs);
           }
         });
 
-        // 4. Education Smart Merge
+        // 4. Education Cloud Sync
         supabaseService.fetchEducation().then((cloudEdu) => {
-          if (Array.isArray(cloudEdu) && cloudEdu.length > 0) {
-            setEducation((localEdu) => {
-              const mergedMap = new Map<string, EducationItem>();
-              localEdu.forEach((e) => mergedMap.set(e.id, e));
-              cloudEdu.forEach((e) => mergedMap.set(e.id, e));
-              const merged = Array.from(mergedMap.values());
-              storageService.saveEducation(merged);
-              return merged;
-            });
-          } else if (Array.isArray(cloudEdu) && cloudEdu.length === 0) {
-            setEducation((localEdu) => {
-              localEdu.forEach((e) => supabaseService.syncEducation(e));
-              return localEdu;
-            });
+          if (Array.isArray(cloudEdu)) {
+            setEducation(cloudEdu);
+            storageService.saveEducation(cloudEdu);
           }
         });
 
-        // 5. Applied Hackathons Smart Merge
+        // 5. Applied Hackathons Cloud Sync
         supabaseService.fetchAppliedHackathons().then((cloudHacks) => {
-          if (Array.isArray(cloudHacks) && cloudHacks.length > 0) {
-            setAppliedHackathons((localHacks) => {
-              const mergedMap = new Map<string, AppliedHackathon>();
-              localHacks.forEach((h) => mergedMap.set(h.id, h));
-              cloudHacks.forEach((h) => mergedMap.set(h.id, h));
-              const merged = Array.from(mergedMap.values());
-              storageService.saveAppliedHackathons(merged);
-              return merged;
-            });
-          } else if (Array.isArray(cloudHacks) && cloudHacks.length === 0) {
-            setAppliedHackathons((localHacks) => {
-              localHacks.forEach((h) => supabaseService.syncHackathon(h));
-              return localHacks;
-            });
+          if (Array.isArray(cloudHacks)) {
+            setAppliedHackathons(cloudHacks);
+            storageService.saveAppliedHackathons(cloudHacks);
           }
         });
 
-        // 6. Applied Scholarships Smart Merge
+        // 6. Applied Scholarships Cloud Sync
         supabaseService.fetchAppliedScholarships().then((cloudSchols) => {
-          if (Array.isArray(cloudSchols) && cloudSchols.length > 0) {
-            setAppliedScholarships((localSchols) => {
-              const mergedMap = new Map<string, AppliedScholarship>();
-              localSchols.forEach((s) => mergedMap.set(s.id, s));
-              cloudSchols.forEach((s) => mergedMap.set(s.id, s));
-              const merged = Array.from(mergedMap.values());
-              storageService.saveAppliedScholarships(merged);
-              return merged;
-            });
-          } else if (Array.isArray(cloudSchols) && cloudSchols.length === 0) {
-            setAppliedScholarships((localSchols) => {
-              localSchols.forEach((s) => supabaseService.syncScholarship(s));
-              return localSchols;
-            });
+          if (Array.isArray(cloudSchols)) {
+            setAppliedScholarships(cloudSchols);
+            storageService.saveAppliedScholarships(cloudSchols);
           }
         });
       }
+    } else {
+      // When not logged in / logged out, reset state to clear user data
+      setDocuments([]);
+      setCertificates([]);
+      setProjects([]);
+      setEducation([]);
+      setAppliedHackathons([]);
+      setAppliedScholarships([]);
     }
   }, [user]);
 
@@ -353,8 +295,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     showToast('Profile updated and synced to cloud');
   };
 
-  // Documents (Supabase Cloud + Local)
-  const addDocument = (doc: Omit<DocumentItem, 'id' | 'uploadDate'>) => {
+  // Documents (Supabase Cloud Database + Local Storage)
+  const addDocument = async (doc: Omit<DocumentItem, 'id' | 'uploadDate'>) => {
     const newDoc: DocumentItem = {
       ...doc,
       id: generateUUID(),
@@ -363,26 +305,32 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const updated = [newDoc, ...documents];
     setDocuments(updated);
     storageService.saveDocuments(updated);
-    supabaseService.syncDocument(newDoc);
+
+    const syncRes = await supabaseService.syncDocument(newDoc);
     storageService.addActivity('Uploaded document', newDoc.title, 'Document');
     setActivities(storageService.getActivities());
-    showToast(`Uploaded "${newDoc.title}" (Synced to Cloud)`);
+
+    if (syncRes.success) {
+      showToast(`Uploaded "${newDoc.title}" (Stored in Cloud & Synced)`);
+    } else {
+      showToast(`Uploaded "${newDoc.title}" locally`, 'info');
+    }
   };
 
-  const updateDocument = (doc: DocumentItem) => {
+  const updateDocument = async (doc: DocumentItem) => {
     const updated = documents.map((d) => (d.id === doc.id ? doc : d));
     setDocuments(updated);
     storageService.saveDocuments(updated);
-    supabaseService.syncDocument(doc);
+    await supabaseService.syncDocument(doc);
     showToast(`Updated document "${doc.title}"`);
   };
 
-  const deleteDocument = (id: string) => {
+  const deleteDocument = async (id: string) => {
     const target = documents.find((d) => d.id === id);
     const updated = documents.filter((d) => d.id !== id);
     setDocuments(updated);
     storageService.saveDocuments(updated);
-    supabaseService.deleteDocument(id);
+    await supabaseService.deleteDocument(id);
     if (target) {
       storageService.addActivity('Deleted document', target.title, 'Document');
       setActivities(storageService.getActivities());
@@ -390,84 +338,96 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const toggleFavoriteDocument = (id: string) => {
+  const toggleFavoriteDocument = async (id: string) => {
     const updated = documents.map((d) => (d.id === id ? { ...d, isFavorite: !d.isFavorite } : d));
     setDocuments(updated);
     storageService.saveDocuments(updated);
     const target = updated.find((d) => d.id === id);
-    if (target) supabaseService.syncDocument(target);
+    if (target) await supabaseService.syncDocument(target);
   };
 
-  // Certificates (Supabase Cloud + Local)
-  const addCertificate = (cert: Omit<CertificateItem, 'id'>) => {
+  // Certificates (Supabase Cloud Database + Local Storage)
+  const addCertificate = async (cert: Omit<CertificateItem, 'id'>) => {
     const newCert: CertificateItem = { ...cert, id: generateUUID() };
     const updated = [newCert, ...certificates];
     setCertificates(updated);
     storageService.saveCertificates(updated);
-    supabaseService.syncCertificate(newCert);
+
+    const syncRes = await supabaseService.syncCertificate(newCert);
     storageService.addActivity('Added certificate', newCert.title, 'Certificate');
     setActivities(storageService.getActivities());
-    showToast(`Added certificate "${newCert.title}" (Synced to Cloud)`);
+
+    if (syncRes.success) {
+      showToast(`Added certificate "${newCert.title}" (Stored in Cloud & Synced)`);
+    } else {
+      showToast(`Added certificate "${newCert.title}" locally`, 'info');
+    }
   };
 
-  const updateCertificate = (cert: CertificateItem) => {
+  const updateCertificate = async (cert: CertificateItem) => {
     const updated = certificates.map((c) => (c.id === cert.id ? cert : c));
     setCertificates(updated);
     storageService.saveCertificates(updated);
-    supabaseService.syncCertificate(cert);
+    await supabaseService.syncCertificate(cert);
     showToast(`Updated certificate "${cert.title}"`);
   };
 
-  const deleteCertificate = (id: string) => {
+  const deleteCertificate = async (id: string) => {
     const updated = certificates.filter((c) => c.id !== id);
     setCertificates(updated);
     storageService.saveCertificates(updated);
-    supabaseService.deleteCertificate(id);
+    await supabaseService.deleteCertificate(id);
     showToast('Certificate removed', 'info');
   };
 
-  const toggleFavoriteCertificate = (id: string) => {
+  const toggleFavoriteCertificate = async (id: string) => {
     const updated = certificates.map((c) => (c.id === id ? { ...c, isFavorite: !c.isFavorite } : c));
     setCertificates(updated);
     storageService.saveCertificates(updated);
     const target = updated.find((c) => c.id === id);
-    if (target) supabaseService.syncCertificate(target);
+    if (target) await supabaseService.syncCertificate(target);
   };
 
-  // Projects (Supabase Cloud + Local)
-  const addProject = (proj: Omit<ProjectItem, 'id'>) => {
+  // Projects (Supabase Cloud Database + Local Storage)
+  const addProject = async (proj: Omit<ProjectItem, 'id'>) => {
     const newProj: ProjectItem = { ...proj, id: generateUUID() };
     const updated = [newProj, ...projects];
     setProjects(updated);
     storageService.saveProjects(updated);
-    supabaseService.syncProject(newProj);
+
+    const syncRes = await supabaseService.syncProject(newProj);
     storageService.addActivity('Created project hub entry', newProj.name, 'Project');
     setActivities(storageService.getActivities());
-    showToast(`Added project "${newProj.name}" (Synced to Cloud)`);
+
+    if (syncRes.success) {
+      showToast(`Added project "${newProj.name}" (Stored in Cloud & Synced)`);
+    } else {
+      showToast(`Added project "${newProj.name}" locally`, 'info');
+    }
   };
 
-  const updateProject = (proj: ProjectItem) => {
+  const updateProject = async (proj: ProjectItem) => {
     const updated = projects.map((p) => (p.id === proj.id ? proj : p));
     setProjects(updated);
     storageService.saveProjects(updated);
-    supabaseService.syncProject(proj);
+    await supabaseService.syncProject(proj);
     showToast(`Updated project "${proj.name}"`);
   };
 
-  const deleteProject = (id: string) => {
+  const deleteProject = async (id: string) => {
     const updated = projects.filter((p) => p.id !== id);
     setProjects(updated);
     storageService.saveProjects(updated);
-    supabaseService.deleteProject(id);
+    await supabaseService.deleteProject(id);
     showToast('Project deleted', 'info');
   };
 
-  const toggleFavoriteProject = (id: string) => {
+  const toggleFavoriteProject = async (id: string) => {
     const updated = projects.map((p) => (p.id === id ? { ...p, isFavorite: !p.isFavorite } : p));
     setProjects(updated);
     storageService.saveProjects(updated);
     const target = updated.find((p) => p.id === id);
-    if (target) supabaseService.syncProject(target);
+    if (target) await supabaseService.syncProject(target);
   };
 
   // Presentations
@@ -507,20 +467,20 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   // Education (Supabase Cloud + Local)
-  const addEducation = (edu: Omit<EducationItem, 'id'>) => {
+  const addEducation = async (edu: Omit<EducationItem, 'id'>) => {
     const newEdu: EducationItem = { ...edu, id: generateUUID() };
     const updated = [...education, newEdu];
     setEducation(updated);
     storageService.saveEducation(updated);
-    supabaseService.syncEducation(newEdu);
+    await supabaseService.syncEducation(newEdu);
     showToast('Education record added (Synced to Cloud)');
   };
 
-  const updateEducation = (edu: EducationItem) => {
+  const updateEducation = async (edu: EducationItem) => {
     const updated = education.map((e) => (e.id === edu.id ? edu : e));
     setEducation(updated);
     storageService.saveEducation(updated);
-    supabaseService.syncEducation(edu);
+    await supabaseService.syncEducation(edu);
     showToast('Education record updated');
   };
 
@@ -607,31 +567,31 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   // Applied Hackathons (Supabase Cloud + Local)
-  const addAppliedHackathon = (hack: Omit<AppliedHackathon, 'id'>) => {
+  const addAppliedHackathon = async (hack: Omit<AppliedHackathon, 'id'>) => {
     const newHack: AppliedHackathon = { ...hack, id: generateUUID() };
     const updated = [newHack, ...appliedHackathons];
     setAppliedHackathons(updated);
     storageService.saveAppliedHackathons(updated);
-    supabaseService.syncHackathon(newHack);
+    await supabaseService.syncHackathon(newHack);
     storageService.addActivity('Logged hackathon application', newHack.name, 'Hackathon');
     setActivities(storageService.getActivities());
     showToast(`Added hackathon application "${newHack.name}" (Synced to Cloud)`);
   };
 
-  const updateAppliedHackathon = (hack: AppliedHackathon) => {
+  const updateAppliedHackathon = async (hack: AppliedHackathon) => {
     const updated = appliedHackathons.map((h) => (h.id === hack.id ? hack : h));
     setAppliedHackathons(updated);
     storageService.saveAppliedHackathons(updated);
-    supabaseService.syncHackathon(hack);
+    await supabaseService.syncHackathon(hack);
     showToast(`Updated hackathon "${hack.name}"`);
   };
 
-  const deleteAppliedHackathon = (id: string) => {
+  const deleteAppliedHackathon = async (id: string) => {
     const target = appliedHackathons.find((h) => h.id === id);
     const updated = appliedHackathons.filter((h) => h.id !== id);
     setAppliedHackathons(updated);
     storageService.saveAppliedHackathons(updated);
-    supabaseService.deleteHackathon(id);
+    await supabaseService.deleteHackathon(id);
     if (target) {
       storageService.addActivity('Removed hackathon entry', target.name, 'Hackathon');
       setActivities(storageService.getActivities());
@@ -639,40 +599,40 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const toggleFavoriteAppliedHackathon = (id: string) => {
+  const toggleFavoriteAppliedHackathon = async (id: string) => {
     const updated = appliedHackathons.map((h) => (h.id === id ? { ...h, isFavorite: !h.isFavorite } : h));
     setAppliedHackathons(updated);
     storageService.saveAppliedHackathons(updated);
     const target = updated.find((h) => h.id === id);
-    if (target) supabaseService.syncHackathon(target);
+    if (target) await supabaseService.syncHackathon(target);
   };
 
   // Applied Scholarships (Supabase Cloud + Local)
-  const addAppliedScholarship = (schol: Omit<AppliedScholarship, 'id'>) => {
+  const addAppliedScholarship = async (schol: Omit<AppliedScholarship, 'id'>) => {
     const newSchol: AppliedScholarship = { ...schol, id: generateUUID() };
     const updated = [newSchol, ...appliedScholarships];
     setAppliedScholarships(updated);
     storageService.saveAppliedScholarships(updated);
-    supabaseService.syncScholarship(newSchol);
+    await supabaseService.syncScholarship(newSchol);
     storageService.addActivity('Logged scholarship application', newSchol.name, 'Scholarship');
     setActivities(storageService.getActivities());
     showToast(`Added scholarship application "${newSchol.name}" (Synced to Cloud)`);
   };
 
-  const updateAppliedScholarship = (schol: AppliedScholarship) => {
+  const updateAppliedScholarship = async (schol: AppliedScholarship) => {
     const updated = appliedScholarships.map((s) => (s.id === schol.id ? schol : s));
     setAppliedScholarships(updated);
     storageService.saveAppliedScholarships(updated);
-    supabaseService.syncScholarship(schol);
+    await supabaseService.syncScholarship(schol);
     showToast(`Updated scholarship "${schol.name}"`);
   };
 
-  const deleteAppliedScholarship = (id: string) => {
+  const deleteAppliedScholarship = async (id: string) => {
     const target = appliedScholarships.find((s) => s.id === id);
     const updated = appliedScholarships.filter((s) => s.id !== id);
     setAppliedScholarships(updated);
     storageService.saveAppliedScholarships(updated);
-    supabaseService.deleteScholarship(id);
+    await supabaseService.deleteScholarship(id);
     if (target) {
       storageService.addActivity('Removed scholarship entry', target.name, 'Scholarship');
       setActivities(storageService.getActivities());
@@ -680,12 +640,12 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const toggleFavoriteAppliedScholarship = (id: string) => {
+  const toggleFavoriteAppliedScholarship = async (id: string) => {
     const updated = appliedScholarships.map((s) => (s.id === id ? { ...s, isFavorite: !s.isFavorite } : s));
     setAppliedScholarships(updated);
     storageService.saveAppliedScholarships(updated);
     const target = updated.find((s) => s.id === id);
-    if (target) supabaseService.syncScholarship(target);
+    if (target) await supabaseService.syncScholarship(target);
   };
 
   // File Preview Modal
