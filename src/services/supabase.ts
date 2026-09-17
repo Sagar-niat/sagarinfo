@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { idbSaveFile, idbGetFile } from './vaultDB';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://placeholder-project.supabase.co';
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'placeholder-anon-key';
@@ -159,22 +160,40 @@ export const supabaseService = {
       return null;
     }
 
-    return data.map((d: any) => ({
-      id: d.id,
-      title: d.title,
-      category: d.category || 'other',
-      fileName: d.file_name,
-      fileSize: d.file_size,
-      fileSizeBytes: Number(d.file_size_bytes || 0),
-      fileType: d.file_type,
-      fileUrl: d.file_url,
-      previewUrl: d.preview_url,
-      uploadDate: d.upload_date || new Date().toISOString().split('T')[0],
-      description: d.description || '',
-      tags: d.tags || [],
-      isFavorite: Boolean(d.is_favorite),
-      isPrivate: Boolean(d.is_private),
-    }));
+    const mapped = await Promise.all(
+      data.map(async (d: any) => {
+        let fUrl = d.file_url || '';
+        let pUrl = d.preview_url || '';
+
+        if (!fUrl || fUrl.startsWith('idb:')) {
+          const fileId = fUrl.replace('idb:', '') || d.id;
+          const realFile = await idbGetFile(fileId);
+          if (realFile) {
+            fUrl = realFile;
+            pUrl = realFile;
+          }
+        }
+
+        return {
+          id: d.id,
+          title: d.title,
+          category: d.category || 'other',
+          fileName: d.file_name,
+          fileSize: d.file_size,
+          fileSizeBytes: Number(d.file_size_bytes || 0),
+          fileType: d.file_type,
+          fileUrl: fUrl,
+          previewUrl: pUrl || fUrl,
+          uploadDate: d.upload_date || new Date().toISOString().split('T')[0],
+          description: d.description || '',
+          tags: d.tags || [],
+          isFavorite: Boolean(d.is_favorite),
+          isPrivate: Boolean(d.is_private),
+        };
+      })
+    );
+
+    return mapped;
   },
 
   syncDocument: async (doc: any): Promise<{ success: boolean; error?: string }> => {
@@ -185,13 +204,25 @@ export const supabaseService = {
     // Ensure profile row exists to satisfy Foreign Key constraint
     await supabaseService.syncProfile({});
 
-    let fileUrl = doc.fileUrl || doc.file_url || '';
-    if (fileUrl && fileUrl.startsWith('data:')) {
-      const uploadedUrl = await uploadFileToSupabase(fileUrl, doc.fileName || 'document.pdf', 'documents');
+    let rawFileUrl = doc.fileUrl || doc.file_url || '';
+
+    // Always persist full file in browser IndexedDB
+    if (doc.id && rawFileUrl && rawFileUrl.startsWith('data:')) {
+      try {
+        await idbSaveFile(doc.id, rawFileUrl);
+      } catch (e) {
+        console.warn('IndexedDB save file notice:', e);
+      }
+    }
+
+    let cloudFileUrl = rawFileUrl;
+    if (rawFileUrl && rawFileUrl.startsWith('data:')) {
+      const uploadedUrl = await uploadFileToSupabase(rawFileUrl, doc.fileName || 'document.pdf', 'documents');
       if (uploadedUrl) {
-        fileUrl = uploadedUrl;
+        cloudFileUrl = uploadedUrl;
       } else {
-        fileUrl = '';
+        // If storage bucket is not configured, store idb: reference or rawUrl if short
+        cloudFileUrl = rawFileUrl.length > 100000 ? `idb:${doc.id}` : rawFileUrl;
       }
     }
 
@@ -204,8 +235,8 @@ export const supabaseService = {
       file_size: doc.fileSize || doc.file_size || '1 MB',
       file_size_bytes: Number(doc.fileSizeBytes || doc.file_size_bytes || 1024),
       file_type: doc.fileType || doc.file_type || 'application/pdf',
-      file_url: fileUrl,
-      preview_url: fileUrl,
+      file_url: cloudFileUrl,
+      preview_url: cloudFileUrl,
       upload_date: doc.uploadDate || new Date().toISOString().split('T')[0],
       description: doc.description || '',
       tags: doc.tags || [],
