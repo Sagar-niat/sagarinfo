@@ -2,15 +2,15 @@ import React, { useRef, useState } from 'react';
 import {
   Settings,
   Shield,
-  Fingerprint,
   HardDrive,
   Eye,
   Lock,
   Trash2,
   Download,
   Upload,
-  KeyRound,
   LogOut,
+  Mail,
+  UserCheck,
   CheckCircle2,
 } from 'lucide-react';
 import { useData } from '../context/DataContext';
@@ -21,48 +21,24 @@ import { ConfirmationModal } from '../components/common/ConfirmationModal';
 
 export const SettingsPage: React.FC = () => {
   const { storageStats, resetAllData, importBackupData, showToast } = useData();
-  const { registerWebAuthnPasskey, hasPasskeyRegistered, updatePasscode, logout } = useAuth();
+  const { user, resetPassword, logout } = useAuth();
   const { themeMode, setThemeMode } = useTheme();
 
   const [activeTab, setActiveTab] = useState<'security' | 'appearance' | 'storage' | 'privacy'>('security');
-  const [isRegisteringPasskey, setIsRegisteringPasskey] = useState(false);
   const [isCleanVaultConfirmOpen, setIsCleanVaultConfirmOpen] = useState(false);
-
-  // Passcode state
-  const [passcode, setPasscode] = useState('');
-  const [confirmPasscode, setConfirmPasscode] = useState('');
-  const [passcodeSuccess, setPasscodeSuccess] = useState(false);
+  const [sendingReset, setSendingReset] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleUpdatePasscode = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!passcode || passcode.length < 4) {
-      showToast('Passcode must be at least 4 characters long', 'error');
-      return;
-    }
-    if (passcode !== confirmPasscode) {
-      showToast('Passcodes do not match', 'error');
-      return;
-    }
-    updatePasscode(passcode);
-    setPasscodeSuccess(true);
-    setPasscode('');
-    setConfirmPasscode('');
-    showToast('Master Vault Passcode updated successfully!', 'success');
-    setTimeout(() => setPasscodeSuccess(false), 3000);
-  };
-
-  // Real WebAuthn Passkey / Biometric Registration
-  const handleRegisterBiometricPasskey = async () => {
-    setIsRegisteringPasskey(true);
-    const res = await registerWebAuthnPasskey();
-    setIsRegisteringPasskey(false);
-
+  const handleSendPasswordReset = async () => {
+    if (!user?.email) return;
+    setSendingReset(true);
+    const res = await resetPassword(user.email);
+    setSendingReset(false);
     if (res.success) {
-      showToast(res.message);
+      showToast(res.message || 'Password reset link sent to your email!', 'success');
     } else {
-      showToast(res.message, 'error');
+      showToast(res.error || 'Failed to send reset email', 'error');
     }
   };
 
@@ -92,14 +68,14 @@ export const SettingsPage: React.FC = () => {
           Settings & Security Control Center
         </h2>
         <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-          Manage master passcode protection, biometric security, clean vault reset, and backup exports.
+          Manage Supabase account security, theme appearance, vault storage reset, and backup exports.
         </p>
       </div>
 
       {/* Tabs Navbar */}
       <div className="glass-panel p-2 rounded-2xl border border-slate-200 dark:border-slate-800 flex items-center gap-2 overflow-x-auto">
         {[
-          { id: 'security', label: 'Security & Passcode', icon: Shield },
+          { id: 'security', label: 'Account & Security', icon: Shield },
           { id: 'appearance', label: 'Theme Appearance', icon: Eye },
           { id: 'storage', label: 'Storage & Clean Slate', icon: HardDrive },
           { id: 'privacy', label: 'Backup & Restore', icon: Lock },
@@ -122,92 +98,51 @@ export const SettingsPage: React.FC = () => {
         })}
       </div>
 
-      {/* Security Tab */}
+      {/* Account & Security Tab */}
       {activeTab === 'security' && (
         <div className="space-y-6">
-          {/* Master Passcode Section */}
+          {/* Supabase Authenticated User Info */}
           <div className="glass-panel p-6 rounded-3xl border border-slate-200 dark:border-slate-800 space-y-4">
             <div className="flex items-center gap-3">
               <div className="p-3 rounded-2xl bg-cyan-500/15 text-cyan-500">
-                <KeyRound className="w-6 h-6" />
+                <UserCheck className="w-6 h-6" />
               </div>
               <div>
                 <h3 className="text-base font-extrabold text-slate-900 dark:text-white">
-                  Change Master Vault Passcode
+                  Active Account Information
                 </h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                  Update the password required to unlock your vault (Default: <code className="text-cyan-400">sagar2026</code>).
+                  Authenticated via Supabase PostgreSQL Cloud Auth
                 </p>
               </div>
             </div>
 
-            <form onSubmit={handleUpdatePasscode} className="space-y-3 max-w-md pt-2">
-              <div>
-                <label className="block text-xs font-bold text-slate-300 mb-1">New Passcode</label>
-                <input
-                  type="password"
-                  required
-                  value={passcode}
-                  onChange={(e) => setPasscode(e.target.value)}
-                  placeholder="Enter at least 4 characters"
-                  className="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-xs font-medium text-slate-900 dark:text-white"
-                />
+            <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 space-y-2 text-xs">
+              <div className="flex justify-between items-center">
+                <span className="font-semibold text-slate-500 dark:text-slate-400">Account Name:</span>
+                <span className="font-bold text-slate-900 dark:text-white">{user?.name || 'Sagar'}</span>
               </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-300 mb-1">Confirm New Passcode</label>
-                <input
-                  type="password"
-                  required
-                  value={confirmPasscode}
-                  onChange={(e) => setConfirmPasscode(e.target.value)}
-                  placeholder="Re-enter new passcode"
-                  className="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-xs font-medium text-slate-900 dark:text-white"
-                />
+              <div className="flex justify-between items-center">
+                <span className="font-semibold text-slate-500 dark:text-slate-400">Registered Email:</span>
+                <span className="font-mono text-cyan-500 font-bold">{user?.email || 'N/A'}</span>
               </div>
+              <div className="flex justify-between items-center">
+                <span className="font-semibold text-slate-500 dark:text-slate-400">Auth Status:</span>
+                <span className="inline-flex items-center gap-1 text-emerald-500 font-bold">
+                  <CheckCircle2 className="w-3.5 h-3.5" /> Authenticated
+                </span>
+              </div>
+            </div>
 
-              {passcodeSuccess && (
-                <p className="text-xs text-emerald-400 font-bold flex items-center gap-1">
-                  <CheckCircle2 className="w-4 h-4" /> Passcode successfully updated!
-                </p>
-              )}
-
+            <div className="pt-2">
               <button
-                type="submit"
-                className="px-5 py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs shadow-md transition-all touch-target"
+                type="button"
+                onClick={handleSendPasswordReset}
+                disabled={sendingReset}
+                className="px-4 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs shadow-md transition-all touch-target flex items-center gap-1.5"
               >
-                Save New Passcode
-              </button>
-            </form>
-          </div>
-
-          {/* Biometric & Passkey Section */}
-          <div className="glass-panel p-6 rounded-3xl border border-slate-200 dark:border-slate-800 space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div className="flex items-start gap-3">
-                <div className="p-3 rounded-2xl bg-cyan-500/15 text-cyan-500">
-                  <Fingerprint className="w-6 h-6" />
-                </div>
-                <div>
-                  <h3 className="text-base font-extrabold text-slate-900 dark:text-white">
-                    Device Fingerprint & Face ID Biometrics
-                  </h3>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                    Fast one-touch biometric unlock using your laptop or smartphone sensor.
-                  </p>
-                </div>
-              </div>
-
-              <button
-                onClick={handleRegisterBiometricPasskey}
-                disabled={isRegisteringPasskey}
-                className="px-5 py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold shadow-md transition-all touch-target"
-              >
-                {isRegisteringPasskey
-                  ? 'Verifying...'
-                  : hasPasskeyRegistered
-                  ? 'Update Biometric Key'
-                  : 'Register Biometric Key'}
+                <Mail className="w-4 h-4" />
+                <span>{sendingReset ? 'Sending Email...' : 'Send Password Reset Email'}</span>
               </button>
             </div>
           </div>
@@ -217,17 +152,17 @@ export const SettingsPage: React.FC = () => {
             <div>
               <h3 className="text-sm font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
                 <LogOut className="w-4 h-4 text-rose-500" />
-                Lock Vault Session
+                Sign Out / Lock Session
               </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                Immediately lock your vault and return to the mandatory authentication screen.
+                Sign out of your Supabase session and return to the login screen.
               </p>
             </div>
             <button
               onClick={logout}
               className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-rose-500/20 text-rose-400 border border-slate-700 hover:border-rose-500/40 text-xs font-bold transition-all"
             >
-              Lock Vault Now
+              Sign Out Now
             </button>
           </div>
         </div>
