@@ -179,23 +179,118 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
         });
 
-        supabaseService.fetchDocuments().then((docs) => {
-          if (Array.isArray(docs)) setDocuments(docs);
+        // 1. Documents Smart Cloud + Local Merge
+        supabaseService.fetchDocuments().then((cloudDocs) => {
+          if (Array.isArray(cloudDocs) && cloudDocs.length > 0) {
+            setDocuments((localDocs) => {
+              const mergedMap = new Map<string, DocumentItem>();
+              localDocs.forEach((d) => mergedMap.set(d.id, d));
+              cloudDocs.forEach((d) => mergedMap.set(d.id, d));
+              const merged = Array.from(mergedMap.values());
+              storageService.saveDocuments(merged);
+              return merged;
+            });
+          } else if (Array.isArray(cloudDocs) && cloudDocs.length === 0) {
+            setDocuments((localDocs) => {
+              localDocs.forEach((doc) => supabaseService.syncDocument(doc));
+              return localDocs;
+            });
+          }
         });
-        supabaseService.fetchCertificates().then((certs) => {
-          if (Array.isArray(certs)) setCertificates(certs);
+
+        // 2. Certificates Smart Merge
+        supabaseService.fetchCertificates().then((cloudCerts) => {
+          if (Array.isArray(cloudCerts) && cloudCerts.length > 0) {
+            setCertificates((localCerts) => {
+              const mergedMap = new Map<string, CertificateItem>();
+              localCerts.forEach((c) => mergedMap.set(c.id, c));
+              cloudCerts.forEach((c) => mergedMap.set(c.id, c));
+              const merged = Array.from(mergedMap.values());
+              storageService.saveCertificates(merged);
+              return merged;
+            });
+          } else if (Array.isArray(cloudCerts) && cloudCerts.length === 0) {
+            setCertificates((localCerts) => {
+              localCerts.forEach((cert) => supabaseService.syncCertificate(cert));
+              return localCerts;
+            });
+          }
         });
-        supabaseService.fetchProjects().then((projs) => {
-          if (Array.isArray(projs)) setProjects(projs);
+
+        // 3. Projects Smart Merge
+        supabaseService.fetchProjects().then((cloudProjs) => {
+          if (Array.isArray(cloudProjs) && cloudProjs.length > 0) {
+            setProjects((localProjs) => {
+              const mergedMap = new Map<string, ProjectItem>();
+              localProjs.forEach((p) => mergedMap.set(p.id, p));
+              cloudProjs.forEach((p) => mergedMap.set(p.id, p));
+              const merged = Array.from(mergedMap.values());
+              storageService.saveProjects(merged);
+              return merged;
+            });
+          } else if (Array.isArray(cloudProjs) && cloudProjs.length === 0) {
+            setProjects((localProjs) => {
+              localProjs.forEach((proj) => supabaseService.syncProject(proj));
+              return localProjs;
+            });
+          }
         });
-        supabaseService.fetchEducation().then((edu) => {
-          if (Array.isArray(edu)) setEducation(edu);
+
+        // 4. Education Smart Merge
+        supabaseService.fetchEducation().then((cloudEdu) => {
+          if (Array.isArray(cloudEdu) && cloudEdu.length > 0) {
+            setEducation((localEdu) => {
+              const mergedMap = new Map<string, EducationItem>();
+              localEdu.forEach((e) => mergedMap.set(e.id, e));
+              cloudEdu.forEach((e) => mergedMap.set(e.id, e));
+              const merged = Array.from(mergedMap.values());
+              storageService.saveEducation(merged);
+              return merged;
+            });
+          } else if (Array.isArray(cloudEdu) && cloudEdu.length === 0) {
+            setEducation((localEdu) => {
+              localEdu.forEach((e) => supabaseService.syncEducation(e));
+              return localEdu;
+            });
+          }
         });
-        supabaseService.fetchAppliedHackathons().then((hacks) => {
-          if (Array.isArray(hacks)) setAppliedHackathons(hacks);
+
+        // 5. Applied Hackathons Smart Merge
+        supabaseService.fetchAppliedHackathons().then((cloudHacks) => {
+          if (Array.isArray(cloudHacks) && cloudHacks.length > 0) {
+            setAppliedHackathons((localHacks) => {
+              const mergedMap = new Map<string, AppliedHackathon>();
+              localHacks.forEach((h) => mergedMap.set(h.id, h));
+              cloudHacks.forEach((h) => mergedMap.set(h.id, h));
+              const merged = Array.from(mergedMap.values());
+              storageService.saveAppliedHackathons(merged);
+              return merged;
+            });
+          } else if (Array.isArray(cloudHacks) && cloudHacks.length === 0) {
+            setAppliedHackathons((localHacks) => {
+              localHacks.forEach((h) => supabaseService.syncHackathon(h));
+              return localHacks;
+            });
+          }
         });
-        supabaseService.fetchAppliedScholarships().then((schols) => {
-          if (Array.isArray(schols)) setAppliedScholarships(schols);
+
+        // 6. Applied Scholarships Smart Merge
+        supabaseService.fetchAppliedScholarships().then((cloudSchols) => {
+          if (Array.isArray(cloudSchols) && cloudSchols.length > 0) {
+            setAppliedScholarships((localSchols) => {
+              const mergedMap = new Map<string, AppliedScholarship>();
+              localSchols.forEach((s) => mergedMap.set(s.id, s));
+              cloudSchols.forEach((s) => mergedMap.set(s.id, s));
+              const merged = Array.from(mergedMap.values());
+              storageService.saveAppliedScholarships(merged);
+              return merged;
+            });
+          } else if (Array.isArray(cloudSchols) && cloudSchols.length === 0) {
+            setAppliedScholarships((localSchols) => {
+              localSchols.forEach((s) => supabaseService.syncScholarship(s));
+              return localSchols;
+            });
+          }
         });
       }
     }
