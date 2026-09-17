@@ -85,13 +85,13 @@ const sanitizeForLocalStorage = (val: any): any => {
       if (item && typeof item === 'object') {
         const copy = { ...item };
         if (typeof copy.fileUrl === 'string' && copy.fileUrl.length > 20000) {
-          copy.fileUrl = 'idb:' + (copy.id || 'file');
+          copy.fileUrl = '';
         }
         if (typeof copy.previewUrl === 'string' && copy.previewUrl.length > 20000) {
-          copy.previewUrl = 'idb:' + (copy.id || 'file');
+          copy.previewUrl = '';
         }
         if (typeof copy.certificateUrl === 'string' && copy.certificateUrl.length > 20000) {
-          copy.certificateUrl = 'idb:' + (copy.id || 'file');
+          copy.certificateUrl = '';
         }
         return copy;
       }

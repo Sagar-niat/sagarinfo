@@ -36,7 +36,7 @@ export const FilePreviewModal: React.FC = () => {
   const title = previewFile.title || 'Document';
   const fileExt = (title.split('.').pop() || previewFile.type || 'file').toLowerCase();
   const isDataUrl = rawUrl.startsWith('data:');
-  const hasValidUrl = Boolean(rawUrl && rawUrl !== '#' && !rawUrl.includes('w3.org'));
+  const hasValidUrl = Boolean(rawUrl && rawUrl !== '#' && !rawUrl.includes('w3.org') && !rawUrl.startsWith('idb:'));
 
   // Multi-Format Detection
   const isImage =
@@ -55,9 +55,13 @@ export const FilePreviewModal: React.FC = () => {
 
   const handleDownload = async () => {
     if (!hasValidUrl) {
-      showToast('No active document file available.', 'info');
+      showToast('No active document file available for download.', 'info');
       return;
     }
+
+    const targetName = title || 'document';
+    const cleanDownloadName = targetName.startsWith('idb:') ? 'document' : targetName;
+    const downloadFileName = cleanDownloadName.includes('.') ? cleanDownloadName : `${cleanDownloadName}.${fileExt || 'pdf'}`;
 
     try {
       if (rawUrl.startsWith('data:')) {
@@ -75,7 +79,7 @@ export const FilePreviewModal: React.FC = () => {
 
         const link = document.createElement('a');
         link.href = blobUrl;
-        link.download = title.includes('.') ? title : `${title}.${fileExt || 'bin'}`;
+        link.download = downloadFileName;
         document.body.appendChild(link);
         link.click();
         link.remove();
@@ -87,18 +91,18 @@ export const FilePreviewModal: React.FC = () => {
 
         const link = document.createElement('a');
         link.href = blobUrl;
-        link.download = title.includes('.') ? title : `${title}.${fileExt || 'bin'}`;
+        link.download = downloadFileName;
         document.body.appendChild(link);
         link.click();
         link.remove();
         setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
       }
-      showToast(`Downloading "${title}"...`);
+      showToast(`Downloading "${downloadFileName}"...`);
     } catch (err) {
       const link = document.createElement('a');
       link.href = rawUrl;
       link.target = '_blank';
-      link.download = title;
+      link.download = downloadFileName;
       document.body.appendChild(link);
       link.click();
       link.remove();

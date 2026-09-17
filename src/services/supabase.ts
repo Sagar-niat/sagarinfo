@@ -183,6 +183,9 @@ export const supabaseService = {
           if (realFile) {
             fUrl = realFile;
             pUrl = realFile;
+          } else {
+            fUrl = '';
+            pUrl = '';
           }
         }
 
